@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+// --- CONSTANTS ---
+// 1 time unit = 0.1s. Therefore:
+const int time_unit_to_s = 10; 
+const int TIME_LIMIT = 30 * time_unit_to_s; // 30 seconds
+const int START_DELAY = 2 * time_unit_to_s; // 2 seconds
+const int MAX_X = 17;       // 18 columns (0 to 17)
+const int MAX_Y = 12;       // 13 rows (0 to 12)
+
+// --- FROGGER STATE ---
+// Tightly bound variables to prevent state space explosion!
+int[0, MAX_X] frog_x;
+int[0, MAX_Y] frog_y;
+int[0, 5] lives = 5;
+int[0, 2000] score = 0;
+int[1, 5] level = 1;
+
+bool is_dead = false;
+bool level_complete = false;
+
+// --- MAP DEFINITION (STATIC) ---
+// 0 = Safe (Yellow/Grey)
+// 1 = Water (Light Blue)
+// 2 = Home Bay (Blue)
+const int[0,2] CELL_TYPE[MAX_Y+1] = {
+    0, // Row 0 (Start)
+    0, // Row 1 (Grey)
+    0, // Row 2 (Grey)
+    0, // Row 3 (Grey)
+    0, // Row 4 (Grey)
+    0, // Row 5 (Grey)
+    0, // Row 6 (Yellow)
+    1, // Row 7 (Water)
+    1, // Row 8 (Water)
+    1, // Row 9 (Water)
+    1, // Row 10 (Water)
+    1, // Row 11 (Water)
+    2  // Row 12 (Home bays)
+};
+
+// Channels
+broadcast chan update_state; // Used to trigger a global check
+urgent chan frogger_dies;
+urgent chan frogger_scores;
+
+// Check if Frogger is out of bounds or in a bad spot
+void check_game_state() {
+    // 1. Is Frogger on a vehicle? (You will loop through your vehicle coordinate arrays)
+    // if (frog_x &gt;= car_x &amp;&amp; frog_x &lt; car_x + car_size &amp;&amp; frog_y == car_y) { is_dead = true; }
+    
+    // 2. Is Frogger in the water?
+    if (CELL_TYPE[frog_y] == 1) {
+        bool on_object = false;
+        // Loop through floating objects. If Frogger is on one, on_object = true;
+        // Also check if the object is a DIVING turtle in the SUBMERGED state!
+        
+        if (!on_object) {
+            is_dead = true;
+        }
+    }
+}
+</declaration>
+	<template>
+		<name x="5" y="5">Vehicle</name>
+		<parameter>const int id, const int row, const int start_x, const int size, const int speed, const int dir</parameter>
+		<declaration>// Place local declarations here.
+// dir: 1 left to right, -1 right to left
+
+clock t;
+int x = start_x;
+
+
+/**
+ * Calculates the new X coordinate for the vehicle based on its direction.
+ * Wraps around the map if the vehicle goes completely off-screen.
+ * 
+ * @return true if the vehicle just wrapped around the map, false otherwise.
+ */
+bool moveVehicle() {
+    x = x + dir;
+    
+    // Check if it went off the right side
+    if (dir == 1 &amp;&amp; x &gt; 17) {
+        x = -size; // Move to left side, totally off-screen
+        return true;
+    }
+    
+    // Check if it went off the left side
+    if (dir == -1 &amp;&amp; x &lt; -size) {
+        x = 17; // Move to right side
+        return true;
+    }
+    
+    return false;
+}
+/**
+ * Checks whether the position allows for movement, or needs to warp around the screen
+ *
+ * @return true if the position is within boundaries, false otherwise. 
+ */
+bool validPosition() {
+    return ((dir == 1 &amp;&amp; x &lt; MAX_X) || (dir == -1 &amp;&amp; dir &gt; 0));
+}</declaration>
+		<location id="id0" x="-340" y="-76">
+			<name x="-350" y="-110">Moving</name>
+			<label kind="invariant" x="-350" y="-59">t &lt;= speed</label>
+			<label kind="comments" x="-663" y="42">t &lt;= speed since t is object type. It can move when t == speed (cannot always move)</label>
+		</location>
+		<location id="id1" x="93" y="-76">
+			<name x="51" y="-153">Respawining</name>
+			<label kind="invariant" x="42" y="-34">t &lt;= speed * 2</label>
+		</location>
+		<init ref="id0"/>
+		<transition id="id2">
+			<source ref="id1"/>
+			<target ref="id1"/>
+			<label kind="guard" x="204" y="-110">t &lt; speed * 2</label>
+			<nail x="195" y="-153"/>
+			<nail x="195" y="-25"/>
+		</transition>
+		<transition id="id3">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-178" y="-178">t == speed * 2</label>
+			<label kind="assignment" x="-144" y="-136">t = 0,
+moveVehicle()</label>
+			<nail x="-127" y="-144"/>
+		</transition>
+		<transition id="id4">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-161" y="-68">!validPosition()</label>
+		</transition>
+		<transition id="id5">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-501" y="-289">t == speed &amp;&amp; validPosition()</label>
+			<label kind="assignment" x="-620" y="-93">t = 0,
+moveVehicle(),
+check_game_state()</label>
+			<nail x="-459" y="-238"/>
+			<nail x="-459" y="25"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+Vehicle1 = Vehicle(1,1,2,1,1,1);
+// List one or more processes to be composed into a system.
+system Vehicle1;
+</system>
+	<queries>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+	</queries>
+</nta>
