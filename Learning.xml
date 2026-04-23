@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>// Place global declarations here.
+
+chan park, unpark, move, continue_on_street, end_of_street;
+
+
+bool first_car_parked = false;
+bool second_car_parked = false;</declaration>
+	<template>
+		<name>Lane</name>
+		<location id="id0" x="-773" y="-25">
+			<name x="-783" y="-59">find_parking_spot_one</name>
+		</location>
+		<location id="id1" x="-1139" y="-25">
+			<name x="-1149" y="-59">street_beginning</name>
+		</location>
+		<location id="id2" x="-773" y="-280">
+			<name x="-783" y="-314">found_parking_spot_one</name>
+		</location>
+		<location id="id3" x="-442" y="-25">
+			<name x="-452" y="-59">continue</name>
+		</location>
+		<location id="id4" x="-170" y="-25">
+			<name x="-246" y="17">find_parking_slot_two</name>
+		</location>
+		<location id="id5" x="-170" y="-314">
+			<name x="-180" y="-348">found_parking_spot_two</name>
+		</location>
+		<location id="id6" x="238" y="-25">
+			<name x="228" y="-59">continue_again</name>
+		</location>
+		<location id="id7" x="527" y="-25">
+			<name x="517" y="-59">street_end</name>
+		</location>
+		<init ref="id1"/>
+		<transition id="id8">
+			<source ref="id6"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="323" y="-25">end_of_street?</label>
+		</transition>
+		<transition id="id9">
+			<source ref="id4"/>
+			<target ref="id6"/>
+			<label kind="guard" x="-93" y="-51">second_car_parked == true</label>
+		</transition>
+		<transition id="id10">
+			<source ref="id5"/>
+			<target ref="id6"/>
+			<label kind="guard" x="-34" y="-255">second_car_parked == true</label>
+			<label kind="synchronisation" x="0" y="-229">unpark?</label>
+			<label kind="assignment" x="34" y="-204">second_car_parked = false</label>
+		</transition>
+		<transition id="id11">
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-399" y="-153">second_car_parked == false</label>
+			<label kind="synchronisation" x="-263" y="-127">park?</label>
+			<label kind="assignment" x="-382" y="-110">second_car_parked = true</label>
+		</transition>
+		<transition id="id12">
+			<source ref="id3"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-400" y="-25">continue_on_street?</label>
+		</transition>
+		<transition id="id13">
+			<source ref="id0"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-697" y="-25">first_car_parked == true</label>
+		</transition>
+		<transition id="id14">
+			<source ref="id2"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-654" y="-221">first_car_parked == true</label>
+			<label kind="synchronisation" x="-637" y="-195">unpark?</label>
+			<label kind="assignment" x="-603" y="-170">first_car_parked = false</label>
+		</transition>
+		<transition id="id15">
+			<source ref="id0"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-1011" y="-263">first_car_parked == false</label>
+			<label kind="synchronisation" x="-824" y="-161">park?</label>
+			<label kind="assignment" x="-986" y="-110">first_car_parked = true</label>
+		</transition>
+		<transition id="id16">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-969" y="-25">move?</label>
+		</transition>
+	</template>
+	<template>
+		<name x="5" y="5">Car</name>
+		<declaration>// Place local declarations here.
+
+clock wait;
+int position = 0;</declaration>
+		<location id="id17" x="-620" y="-110">
+			<name x="-773" y="-102">find_parking_spot</name>
+		</location>
+		<location id="id18" x="-841" y="-110">
+			<name x="-851" y="-144">start</name>
+		</location>
+		<location id="id19" x="-323" y="-110">
+			<name x="-333" y="-144">perform_parking</name>
+		</location>
+		<location id="id20" x="-595" y="85">
+			<name x="-578" y="76">exit_street</name>
+		</location>
+		<init ref="id18"/>
+		<transition id="id21">
+			<source ref="id17"/>
+			<target ref="id20"/>
+			<label kind="synchronisation" x="-607" y="-29">end_of_street!</label>
+		</transition>
+		<transition id="id22">
+			<source ref="id19"/>
+			<target ref="id17"/>
+			<label kind="synchronisation" x="-314" y="-25">unpark!</label>
+			<nail x="-323" y="-8"/>
+		</transition>
+		<transition id="id23">
+			<source ref="id17"/>
+			<target ref="id19"/>
+			<label kind="synchronisation" x="-602" y="-127">park!</label>
+		</transition>
+		<transition id="id24">
+			<source ref="id17"/>
+			<target ref="id17"/>
+			<label kind="guard" x="-790" y="-280">first_car_parked == false || second_car_parked == false</label>
+			<label kind="synchronisation" x="-646" y="-255">continue_on_street!</label>
+			<nail x="-493" y="-229"/>
+			<nail x="-646" y="-229"/>
+		</transition>
+		<transition id="id25">
+			<source ref="id18"/>
+			<target ref="id17"/>
+			<label kind="synchronisation" x="-765" y="-136">move!</label>
+			<label kind="comments" x="-977" y="-42">channel followed by ? =&gt; query
+channel followed by ! =&gt; perform action</label>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+car1 = Car();
+car2 = Car();
+
+rLane = Lane();
+lLane = Lane();
+
+// List one or more processes to be composed into a system.
+system car1, car2, rLane, lLane;
+</system>
+	<queries>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+	</queries>
+</nta>
