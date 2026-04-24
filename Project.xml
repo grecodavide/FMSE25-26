@@ -10,6 +10,8 @@ const int START_DELAY = 2 * time_unit_to_s; // 2 seconds
 const int MAX_X = 17;       // 18 columns (0 to 17)
 const int MAX_Y = 12;       // 13 rows (0 to 12)
 
+clock global_clock;
+
 // --- FROGGER STATE ---
 // Tightly bound variables to prevent state space explosion!
 int[0, MAX_X] frog_x;
@@ -65,15 +67,15 @@ void check_game_state() {
 </declaration>
 	<template>
 		<name x="5" y="5">Vehicle</name>
-		<parameter>const int id, const int row, const int start_x, const int size, const int speed, const int dir</parameter>
+		<parameter>const int id, const int row, const int start_x, const int size, const int speed</parameter>
 		<declaration>// Place local declarations here.
 // dir: 1 left to right, -1 right to left
 
 clock t;
 int x = start_x;
+const int dir = (row % 2 == 0) ? 1 : -1;
 
-
-/**
+/**2
  * Calculates the new X coordinate for the vehicle based on its direction.
  * Wraps around the map if the vehicle goes completely off-screen.
  * 
@@ -102,51 +104,46 @@ bool moveVehicle() {
  * @return true if the position is within boundaries, false otherwise. 
  */
 bool validPosition() {
-    return ((dir == 1 &amp;&amp; x &lt; MAX_X) || (dir == -1 &amp;&amp; dir &gt; 0));
+    return ((dir == 1 &amp;&amp; x &lt; MAX_X) || (dir == -1 &amp;&amp; x &gt; -size));
 }</declaration>
 		<location id="id0" x="-340" y="-76">
 			<name x="-350" y="-110">Moving</name>
-			<label kind="invariant" x="-350" y="-59">t &lt;= speed</label>
-			<label kind="comments" x="-663" y="42">t &lt;= speed since t is object type. It can move when t == speed (cannot always move)</label>
+			<label kind="invariant" x="-357" y="-59">t &lt;= speed</label>
+			<label kind="comments" x="-714" y="59">t &lt;= speed since t is object type. It can move when t == speed (cannot always move)</label>
 		</location>
 		<location id="id1" x="93" y="-76">
-			<name x="51" y="-153">Respawining</name>
-			<label kind="invariant" x="42" y="-34">t &lt;= speed * 2</label>
+			<name x="76" y="-110">Warping</name>
+			<label kind="invariant" x="68" y="-59">t &lt;= speed * 2</label>
 		</location>
 		<init ref="id0"/>
 		<transition id="id2">
 			<source ref="id1"/>
-			<target ref="id1"/>
-			<label kind="guard" x="204" y="-110">t &lt; speed * 2</label>
-			<nail x="195" y="-153"/>
-			<nail x="195" y="-25"/>
-		</transition>
-		<transition id="id3">
-			<source ref="id1"/>
 			<target ref="id0"/>
-			<label kind="guard" x="-178" y="-178">t == speed * 2</label>
-			<label kind="assignment" x="-144" y="-136">t = 0,
+			<label kind="guard" x="-153" y="-204">t == speed * 2</label>
+			<label kind="assignment" x="-119" y="-187">t = 0,
 moveVehicle()</label>
 			<nail x="-127" y="-144"/>
 		</transition>
-		<transition id="id4">
+		<transition id="id3">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="guard" x="-161" y="-68">!validPosition()</label>
+			<label kind="guard" x="-221" y="-68">t == speed &amp;&amp; !validPosition()</label>
 		</transition>
-		<transition id="id5">
+		<transition id="id4">
 			<source ref="id0"/>
 			<target ref="id0"/>
-			<label kind="guard" x="-501" y="-289">t == speed &amp;&amp; validPosition()</label>
-			<label kind="assignment" x="-620" y="-93">t = 0,
+			<label kind="guard" x="-594" y="-263">t == speed &amp;&amp; validPosition()</label>
+			<label kind="assignment" x="-645" y="-84">t = 0,
 moveVehicle(),
 check_game_state()</label>
-			<nail x="-459" y="-238"/>
-			<nail x="-459" y="25"/>
+			<nail x="-484" y="-229"/>
+			<nail x="-484" y="34"/>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
-Vehicle1 = Vehicle(1,1,2,1,1,1);
+
+Vehicle1 = Vehicle(1,3,1,1,1);
+
 // List one or more processes to be composed into a system.
 system Vehicle1;
 </system>
