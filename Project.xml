@@ -106,38 +106,38 @@ bool moveVehicle() {
 bool validPosition() {
     return ((dir == 1 &amp;&amp; x &lt; MAX_X) || (dir == -1 &amp;&amp; x &gt; -size));
 }</declaration>
-		<location id="id0" x="-340" y="-76">
-			<name x="-350" y="-110">Moving</name>
-			<label kind="invariant" x="-357" y="-59">t &lt;= speed</label>
-			<label kind="comments" x="-714" y="59">t &lt;= speed since t is object type. It can move when t == speed (cannot always move)</label>
+		<location id="id0" x="-425" y="-212">
+			<name x="-435" y="-246">Moving</name>
+			<label kind="invariant" x="-442" y="-195">t &lt;= speed</label>
+			<label kind="comments" x="-799" y="-77">t &lt;= speed since t is object type. It can move when t == speed (cannot always move)</label>
 		</location>
-		<location id="id1" x="93" y="-76">
-			<name x="76" y="-110">Warping</name>
-			<label kind="invariant" x="68" y="-59">t &lt;= speed * 2</label>
+		<location id="id1" x="8" y="-212">
+			<name x="-9" y="-246">Warping</name>
+			<label kind="invariant" x="-17" y="-195">t &lt;= speed * 2</label>
 		</location>
 		<init ref="id0"/>
 		<transition id="id2">
 			<source ref="id1"/>
 			<target ref="id0"/>
-			<label kind="guard" x="-153" y="-204">t == speed * 2</label>
-			<label kind="assignment" x="-119" y="-187">t = 0,
+			<label kind="guard" x="-263" y="-314">t == speed * 2</label>
+			<label kind="assignment" x="-170" y="-297">t = 0,
 moveVehicle()</label>
-			<nail x="-127" y="-144"/>
+			<nail x="-221" y="-272"/>
 		</transition>
 		<transition id="id3">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="guard" x="-221" y="-68">t == speed &amp;&amp; !validPosition()</label>
+			<label kind="guard" x="-331" y="-204">t == speed &amp;&amp; !validPosition()</label>
 		</transition>
 		<transition id="id4">
 			<source ref="id0"/>
 			<target ref="id0"/>
-			<label kind="guard" x="-594" y="-263">t == speed &amp;&amp; validPosition()</label>
-			<label kind="assignment" x="-645" y="-84">t = 0,
+			<label kind="guard" x="-629" y="-306">t == speed &amp;&amp; validPosition()</label>
+			<label kind="assignment" x="-663" y="-246">t = 0,
 moveVehicle(),
 check_game_state()</label>
-			<nail x="-484" y="-229"/>
-			<nail x="-484" y="34"/>
+			<nail x="-501" y="-272"/>
+			<nail x="-501" y="-144"/>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
