@@ -3,15 +3,25 @@
 <nta>
 	<declaration>// Place global declarations here.
 // --- CONSTANTS ---
-// 1 time unit = 0.1s. Therefore:
-const int time_unit_to_s = 10; 
-const int TIME_LIMIT = 30 * time_unit_to_s; // 30 seconds
-const int START_DELAY = 2 * time_unit_to_s; // 2 seconds
-const int MAX_X = 17;       // 18 columns (0 to 17)
-const int MAX_Y = 12;       // 13 rows (0 to 12)
-const int STEPS_WARP = 2;   // how many steps it takes for the warping to happen
+const int time_unit_to_s = 10;                 // 1 time unit = 0.1s 
+const int TIME_LIMIT = 30 * time_unit_to_s;    // 30 seconds
+const int START_DELAY = 2 * time_unit_to_s;    // 2 seconds
+const int MAX_X = 17;                          // 18 columns (0 to 17)
+const int MAX_Y = 12;                          // 13 rows (0 to 12)
+const int STEPS_WARP = 2;                      // steps needed for the warping to be complete
+const int MATRIX_COLS = MAX_X+1+STEPS_WARP;    // number of columns in the world matrix
 
-const int rows[MAX_Y+1][MAX_X+1+STEPS_WARP] = {
+// directions of the rows:
+// -1 means right to left
+//  0 means row does not move
+//  1 means left to right
+const int[-1,1] directions[MAX_Y+1] = {0, -1, 1, -1, 1, -1, 0, -1, 1, 1, -1, 1, 0};
+
+// state of the world:
+// -  0 means the cell is empty
+// -  1 means there is an object on it (depending on the row, a vehicle, a floating object or a wall)
+// - -1 means the position is outside of the boundaries (warping)
+const int rows[MAX_Y+1][MATRIX_COLS] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
     {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, -1},
     {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, -1},
@@ -27,10 +37,29 @@ const int rows[MAX_Y+1][MAX_X+1+STEPS_WARP] = {
     {0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, -1, -1}
 };
 
+// bays can be accessed only if they are free. We keep track of the already occupied bays like this
 bool home_bays_occupied[5] = {false, false, false, false, false};
 
-// TODO: add boundaries
-int offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+// The offsets will represent the current position of the row: since all elements of the
+// same row have the same speed, we can make the whole row move instead of the single objects.
+// This offset keeps track of this movement
+int[0,MATRIX_COLS] offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+/**
+* Returns the current cell occupying a given position.
+*
+* @returns an int representing what occupies the given cell:
+* -  0 means the cell is empty
+* -  1 means there is an object on it (depending on the row, a vehicle, a floating object or a wall)
+* - -1 means the position is outside of the boundaries (warping)
+*/
+int[-1,1] getCell(int row, int col) {
+    int dir = directions[row];
+    int offset = offsets[row] * dir;
+    int cur_col = (col + offset) % MATRIX_COLS;
+
+    return rows[row][cur_col];
+}
 
 
 clock global_clock;
