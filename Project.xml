@@ -20,8 +20,9 @@ const int[-1,1] directions[MAX_Y+1] = {0, -1, 1, -1, 1, -1, 0, -1, 1, 1, -1, 1, 
 // state of the world:
 // -  0 means the cell is empty
 // -  1 means there is an object on it (depending on the row, a vehicle, a floating object or a wall)
+// -  2 means there is a diving turtle group
 // - -1 means the position is outside of the boundaries (warping)
-const int rows[MAX_Y+1][MATRIX_COLS] = {
+const int[-1,2] rows[MAX_Y+1][MATRIX_COLS] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
     {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, -1},
     {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, -1, -1},
@@ -29,10 +30,10 @@ const int rows[MAX_Y+1][MATRIX_COLS] = {
     {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, -1, -1},
     {0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, -1, -1},
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
-    {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, -1, -1},
+    {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2, 2, 2, -1, -1},
     {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, -1, -1},
     {0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, -1, -1},
-    {0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, -1, -1},
+    {0, 1, 1, 1, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, -1, -1},
     {0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, -1, -1},
     {0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, -1, -1}
 };
@@ -44,6 +45,8 @@ bool home_bays_occupied[5] = {false, false, false, false, false};
 // same row have the same speed, we can make the whole row move instead of the single objects.
 // This offset keeps track of this movement
 int[0,MATRIX_COLS] offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+bool are_diving_turtles_up = true;
 
 /**
 * Returns the current cell occupying a given position.
@@ -118,6 +121,53 @@ void check_game_state() {
 }
 </declaration>
 	<template>
+		<name>DivingTurtleGroups</name>
+		<declaration>
+clock t;
+
+//const int emerged2diving = 10;
+//const int diving2submerged = 5;
+//const int submerged2emerging = 10;
+//const int emerging2emerged = 5;
+
+// total time in which frogger can stand on a diving turtle group
+const int tAboveSurface = 20;
+// total time in which the turtle group is under water
+const int tUnderSurface = 10;
+
+// update global variable for diving turtle groups status
+void submerge() { are_diving_turtles_up = false; }
+void emerge() { are_diving_turtles_up = true; }
+
+
+</declaration>
+		<location id="id0" x="-34" y="0">
+			<name x="-85" y="-59">AboveSurface</name>
+			<label kind="invariant" x="-68" y="34">t &lt;= tAboveSurface</label>
+		</location>
+		<location id="id1" x="-433" y="-8">
+			<name x="-476" y="-51">Submerged</name>
+			<label kind="invariant" x="-552" y="17">t &lt;= tUnderSurface</label>
+		</location>
+		<init ref="id0"/>
+		<transition id="id2">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-425" y="68">t == tUnderSurface</label>
+			<label kind="assignment" x="-161" y="76">emerge(),
+t = 0</label>
+			<nail x="-221" y="102"/>
+		</transition>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-161" y="-102">t == tAboveSurface</label>
+			<label kind="assignment" x="-382" y="-110">submerge(),
+t = 0</label>
+			<nail x="-221" y="-110"/>
+		</transition>
+	</template>
+	<template>
 		<name>DynamicRow</name>
 		<parameter>int rownr, int speed</parameter>
 		<declaration>clock t;
@@ -125,14 +175,14 @@ void check_game_state() {
 void update_offset() {
     offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
 }</declaration>
-		<location id="id0" x="0" y="0">
+		<location id="id4" x="0" y="0">
 			<name x="-25" y="-42">Moving</name>
 			<label kind="invariant" x="17" y="-8">t &lt;= speed</label>
 		</location>
-		<init ref="id0"/>
-		<transition id="id1">
-			<source ref="id0"/>
-			<target ref="id0"/>
+		<init ref="id4"/>
+		<transition id="id5">
+			<source ref="id4"/>
+			<target ref="id4"/>
 			<label kind="guard" x="-195" y="-110">t == speed</label>
 			<label kind="assignment" x="-195" y="85">update_offset(),
 t = 0</label>
@@ -181,32 +231,32 @@ bool moveVehicle() {
 bool validPosition() {
     return ((dir == 1 &amp;&amp; x &lt; MAX_X) || (dir == -1 &amp;&amp; x &gt; -size));
 }</declaration>
-		<location id="id2" x="-425" y="-212">
+		<location id="id6" x="-425" y="-212">
 			<name x="-435" y="-246">Moving</name>
 			<label kind="invariant" x="-442" y="-195">t &lt;= speed</label>
 			<label kind="comments" x="-799" y="-77">t &lt;= speed since t is object type. It can move when t == speed (cannot always move)</label>
 		</location>
-		<location id="id3" x="8" y="-212">
+		<location id="id7" x="8" y="-212">
 			<name x="-9" y="-246">Warping</name>
 			<label kind="invariant" x="-17" y="-195">t &lt;= speed * 2</label>
 		</location>
-		<init ref="id2"/>
-		<transition id="id4">
-			<source ref="id3"/>
-			<target ref="id2"/>
+		<init ref="id6"/>
+		<transition id="id8">
+			<source ref="id7"/>
+			<target ref="id6"/>
 			<label kind="guard" x="-263" y="-314">t == speed * 2</label>
 			<label kind="assignment" x="-170" y="-297">t = 0,
 moveVehicle()</label>
 			<nail x="-221" y="-272"/>
 		</transition>
-		<transition id="id5">
-			<source ref="id2"/>
-			<target ref="id3"/>
+		<transition id="id9">
+			<source ref="id6"/>
+			<target ref="id7"/>
 			<label kind="guard" x="-331" y="-204">t == speed &amp;&amp; !validPosition()</label>
 		</transition>
-		<transition id="id6">
-			<source ref="id2"/>
-			<target ref="id2"/>
+		<transition id="id10">
+			<source ref="id6"/>
+			<target ref="id6"/>
 			<label kind="guard" x="-629" y="-306">t == speed &amp;&amp; validPosition()</label>
 			<label kind="assignment" x="-663" y="-246">t = 0,
 moveVehicle(),
