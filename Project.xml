@@ -278,7 +278,9 @@ row_9  = DynamicRow(9, 7);
 row_10 = DynamicRow(10, 2);
 row_11 = DynamicRow(11, 2);
 
-system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11;</system>
+diving_turtles = DivingTurtleGroups();
+
+system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11, diving_turtles;</system>
 	<queries>
 		<query>
 			<formula>A[] global_clock == 3 imply offsets[1] == 1</formula>
