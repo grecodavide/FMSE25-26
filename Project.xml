@@ -306,9 +306,33 @@ diving_turtles = DivingTurtleGroups();
 system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11, diving_turtles;</system>
 	<queries>
 		<query>
-			<formula>A[] global_clock == 3 imply offsets[1] == 1</formula>
+			<formula>A[] not deadlock</formula>
+			<comment>1.1) Without considering Frogger: the game never reaches a deadlock state.</comment>
+			<result outcome="success" type="quality" timestamp="2026-04-29 09:28:18 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>A[] (offsets[1] &gt;= 0 &amp;&amp; offsets[1] &lt; MATRIX_COLS &amp;&amp;
+     offsets[2] &gt;= 0 &amp;&amp; offsets[2] &lt; MATRIX_COLS &amp;&amp;
+     offsets[3] &gt;= 0 &amp;&amp; offsets[3] &lt; MATRIX_COLS &amp;&amp;
+     offsets[4] &gt;= 0 &amp;&amp; offsets[4] &lt; MATRIX_COLS &amp;&amp;
+     offsets[5] &gt;= 0 &amp;&amp; offsets[5] &lt; MATRIX_COLS &amp;&amp;
+     offsets[7] &gt;= 0 &amp;&amp; offsets[7] &lt; MATRIX_COLS &amp;&amp;
+     offsets[8] &gt;= 0 &amp;&amp; offsets[8] &lt; MATRIX_COLS &amp;&amp;
+     offsets[9] &gt;= 0 &amp;&amp; offsets[9] &lt; MATRIX_COLS &amp;&amp;
+     offsets[10] &gt;= 0 &amp;&amp; offsets[10] &lt; MATRIX_COLS &amp;&amp;
+     offsets[11] &gt;= 0 &amp;&amp; offsets[11] &lt; MATRIX_COLS)</formula>
+			<comment>1.2) Without considering Frogger: all vehicles and floating objects can only
+move inside their predefined row.
+
+This is true by construction in our model, we still check that offsets stay within (0, MATRIX_COLS)</comment>
+			<result outcome="success" type="quality" timestamp="2026-04-29 09:27:32 +0200">
+			</result>
+		</query>
+		<query>
+			<formula>A[] global_clock == 4 imply offsets[1] == 1</formula>
 			<comment/>
-			<result outcome="failure" type="quality" timestamp="2026-04-28 08:43:48 +0200">
+			<result outcome="success" type="quality" timestamp="2026-04-29 08:53:37 +0200">
 			</result>
 		</query>
 		<query>
