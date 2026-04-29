@@ -46,22 +46,40 @@ bool home_bays_occupied[5] = {false, false, false, false, false};
 // This offset keeps track of this movement
 int[0,MATRIX_COLS] offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+// Global status of the 2 diving turtle groups, it is shared because the have the same initial state and transition timers
 bool are_diving_turtles_up = true;
 
 /**
 * Returns the current cell occupying a given position.
 *
+* @param: int - col: the x coordinate
+* @param: int - row: the y coordinate
+*
 * @returns an int representing what occupies the given cell:
 * -  0 means the cell is empty
 * -  1 means there is an object on it (depending on the row, a vehicle, a floating object or a wall)
+* -  2 means the cell is a whithin a diving turtle group
 * - -1 means the position is outside of the boundaries (warping)
 */
-int[-1,1] getCell(int row, int col) {
+int[-1,2] getCell(int row, int col) {
     int dir = directions[row];
     int offset = offsets[row] * dir;
     int cur_col = (col + offset) % MATRIX_COLS;
 
     return rows[row][cur_col];
+}
+
+/**
+* Predicate returning the type of row
+*
+* @param: int - the row number
+*
+* @returns:
+* -  true if the row represents a lane on the river
+* -  false if the row represents a lane of ground
+*/
+bool is_water(int row) {
+    return row &gt;= 7 &amp;&amp; row &lt;= 11;
 }
 
 
@@ -136,8 +154,13 @@ const int tAboveSurface = 20;
 const int tUnderSurface = 10;
 
 // update global variable for diving turtle groups status
-void submerge() { are_diving_turtles_up = false; }
-void emerge() { are_diving_turtles_up = true; }
+void submerge() {
+    are_diving_turtles_up = false;
+}
+
+void emerge() {
+    are_diving_turtles_up = true;
+}
 
 
 </declaration>
