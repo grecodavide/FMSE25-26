@@ -85,59 +85,141 @@ bool is_water(int row) {
 
 clock global_clock;
 
-// --- FROGGER STATE ---
-// Tightly bound variables to prevent state space explosion!
-int[0, MAX_X] frog_x;
-int[0, MAX_Y] frog_y;
-int[0, 5] lives = 5;
-int[0, 2000] score = 0;
-int[1, 5] level = 1;
-
-bool is_dead = false;
-bool level_complete = false;
-
-// --- MAP DEFINITION (STATIC) ---
-// 0 = Safe (Yellow/Grey)
-// 1 = Water (Light Blue)
-// 2 = Home Bay (Blue)
-const int[0,2] CELL_TYPE[MAX_Y+1] = {
-    0, // Row 0 (Start)
-    0, // Row 1 (Grey)
-    0, // Row 2 (Grey)
-    0, // Row 3 (Grey)
-    0, // Row 4 (Grey)
-    0, // Row 5 (Grey)
-    0, // Row 6 (Yellow)
-    1, // Row 7 (Water)
-    1, // Row 8 (Water)
-    1, // Row 9 (Water)
-    1, // Row 10 (Water)
-    1, // Row 11 (Water)
-    2  // Row 12 (Home bays)
-};
-
 // Channels
-broadcast chan update_state; // Used to trigger a global check
-urgent chan frogger_dies;
-urgent chan frogger_scores;
+urgent chan game_over;
 
-// Check if Frogger is out of bounds or in a bad spot
-void check_game_state() {
-    // 1. Is Frogger on a vehicle? (You will loop through your vehicle coordinate arrays)
-    // if (frog_x &gt;= car_x &amp;&amp; frog_x &lt; car_x + car_size &amp;&amp; frog_y == car_y) { is_dead = true; }
-    
-    // 2. Is Frogger in the water?
-    if (CELL_TYPE[frog_y] == 1) {
-        bool on_object = false;
-        // Loop through floating objects. If Frogger is on one, on_object = true;
-        // Also check if the object is a DIVING turtle in the SUBMERGED state!
-        
-        if (!on_object) {
-            is_dead = true;
-        }
-    }
-}
 </declaration>
+	<template>
+		<name>Game</name>
+		<location id="id0" x="0" y="0">
+		</location>
+		<location id="id1" x="-238" y="0">
+		</location>
+		<init ref="id0"/>
+		<transition id="id2">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-161" y="-34">game_over?</label>
+		</transition>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id0"/>
+			<nail x="-51" y="-102"/>
+			<nail x="51" y="-102"/>
+		</transition>
+	</template>
+	<template>
+		<name>Frogger</name>
+		<declaration>clock t;
+clock timer;
+
+const int maxTimerStart = 30 * time_unit_to_s;
+const int maxLives = 5;
+const int start_x = 9;
+const int start_y = 0;
+
+const int move_up_points = 1;
+const int occupy_home_bay_points = 5;
+const int win_level_points = 100;
+
+int[0, maxTimerStart] maxTimer = maxTimerStart;
+
+int[0,maxLives] lives = maxLives;
+
+int[0, MAX_X+1] x = start_x;
+int[0, MAX_Y+1] y = start_y;
+
+int points = 0;
+
+bool dead = false;
+
+
+void move(int direction) {
+    // davide
+}
+void respawn(){
+    // edo
+}
+void win_level() {
+    // davide
+}
+void die() {
+    // edo
+}
+
+void check_death() {
+    // davide
+}
+bool is_free_home_bay() {
+    // edo
+    return true;
+}</declaration>
+		<location id="id4" x="-33" y="8">
+			<name x="-68" y="-34">Reset</name>
+		</location>
+		<location id="id5" x="-270" y="9">
+			<name x="-280" y="-25">Dead</name>
+		</location>
+		<location id="id6" x="127" y="8">
+			<name x="144" y="0">Playing</name>
+		</location>
+		<location id="id7" x="-561" y="8">
+			<name x="-571" y="-26">gameOver</name>
+		</location>
+		<location id="id8" x="127" y="-229">
+			<name x="85" y="-263">TouchDown</name>
+		</location>
+		<init ref="id4"/>
+		<transition id="id9">
+			<source ref="id8"/>
+			<target ref="id4"/>
+			<label kind="assignment" x="-42" y="-127">respawn()</label>
+		</transition>
+		<transition id="id10">
+			<source ref="id6"/>
+			<target ref="id8"/>
+			<label kind="guard" x="144" y="-153">y == MAX_Y+1 &amp;&amp; is_free_home_bay()</label>
+		</transition>
+		<transition id="id11">
+			<source ref="id6"/>
+			<target ref="id6"/>
+			<nail x="255" y="-76"/>
+			<nail x="255" y="93"/>
+		</transition>
+		<transition id="id12">
+			<source ref="id6"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-144" y="110">timer == maxTimer || dead</label>
+			<label kind="assignment" x="-102" y="127">die()</label>
+			<nail x="-76" y="110"/>
+		</transition>
+		<transition id="id13">
+			<source ref="id6"/>
+			<target ref="id6"/>
+			<label kind="guard" x="93" y="110">t == 1</label>
+			<label kind="assignment" x="93" y="127">t = 0,
+check_death()</label>
+			<nail x="68" y="110"/>
+			<nail x="68" y="110"/>
+			<nail x="178" y="110"/>
+		</transition>
+		<transition id="id14">
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="guard" x="-195" y="-17">lives &gt; 0</label>
+			<nail x="-153" y="8"/>
+		</transition>
+		<transition id="id15">
+			<source ref="id5"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-450" y="-34">lives == 0</label>
+			<label kind="synchronisation" x="-450" y="-17">game_over!</label>
+		</transition>
+		<transition id="id16">
+			<source ref="id4"/>
+			<target ref="id6"/>
+		</transition>
+	</template>
 	<template>
 		<name>DivingTurtleGroups</name>
 		<declaration>
@@ -164,26 +246,26 @@ void emerge() {
 
 
 </declaration>
-		<location id="id0" x="-34" y="0">
+		<location id="id17" x="-34" y="0">
 			<name x="-85" y="-59">AboveSurface</name>
 			<label kind="invariant" x="-68" y="34">t &lt;= tAboveSurface</label>
 		</location>
-		<location id="id1" x="-433" y="-8">
+		<location id="id18" x="-433" y="-8">
 			<name x="-476" y="-51">Submerged</name>
 			<label kind="invariant" x="-552" y="17">t &lt;= tUnderSurface</label>
 		</location>
-		<init ref="id0"/>
-		<transition id="id2">
-			<source ref="id1"/>
-			<target ref="id0"/>
+		<init ref="id17"/>
+		<transition id="id19">
+			<source ref="id18"/>
+			<target ref="id17"/>
 			<label kind="guard" x="-425" y="68">t == tUnderSurface</label>
 			<label kind="assignment" x="-161" y="76">emerge(),
 t = 0</label>
 			<nail x="-221" y="102"/>
 		</transition>
-		<transition id="id3">
-			<source ref="id0"/>
-			<target ref="id1"/>
+		<transition id="id20">
+			<source ref="id17"/>
+			<target ref="id18"/>
 			<label kind="guard" x="-161" y="-102">t == tAboveSurface</label>
 			<label kind="assignment" x="-382" y="-110">submerge(),
 t = 0</label>
@@ -198,94 +280,19 @@ t = 0</label>
 void update_offset() {
     offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
 }</declaration>
-		<location id="id4" x="0" y="0">
+		<location id="id21" x="0" y="0">
 			<name x="-25" y="-42">Moving</name>
-			<label kind="invariant" x="17" y="-8">t &lt;= speed</label>
+			<label kind="invariant" x="-34" y="34">t &lt;= speed</label>
 		</location>
-		<init ref="id4"/>
-		<transition id="id5">
-			<source ref="id4"/>
-			<target ref="id4"/>
+		<init ref="id21"/>
+		<transition id="id22">
+			<source ref="id21"/>
+			<target ref="id21"/>
 			<label kind="guard" x="-195" y="-110">t == speed</label>
 			<label kind="assignment" x="-195" y="85">update_offset(),
 t = 0</label>
 			<nail x="-178" y="-85"/>
 			<nail x="-178" y="85"/>
-		</transition>
-	</template>
-	<template>
-		<name x="5" y="5">Vehicle</name>
-		<parameter>const int id, const int row, const int start_x, const int size, const int speed</parameter>
-		<declaration>// Place local declarations here.
-// dir: 1 left to right, -1 right to left
-
-clock t;
-int x = start_x;
-const int dir = (row % 2 == 0) ? 1 : -1;
-
-/**2
- * Calculates the new X coordinate for the vehicle based on its direction.
- * Wraps around the map if the vehicle goes completely off-screen.
- * 
- * @return true if the vehicle just wrapped around the map, false otherwise.
- */
-bool moveVehicle() {
-    x = x + dir;
-    
-    // Check if it went off the right side
-    if (dir == 1 &amp;&amp; x &gt; 17) {
-        x = -size; // Move to left side, totally off-screen
-        return true;
-    }
-    
-    // Check if it went off the left side
-    if (dir == -1 &amp;&amp; x &lt; -size) {
-        x = 17; // Move to right side
-        return true;
-    }
-    
-    return false;
-}
-/**
- * Checks whether the position allows for movement, or needs to warp around the screen
- *
- * @return true if the position is within boundaries, false otherwise. 
- */
-bool validPosition() {
-    return ((dir == 1 &amp;&amp; x &lt; MAX_X) || (dir == -1 &amp;&amp; x &gt; -size));
-}</declaration>
-		<location id="id6" x="-425" y="-212">
-			<name x="-435" y="-246">Moving</name>
-			<label kind="invariant" x="-442" y="-195">t &lt;= speed</label>
-			<label kind="comments" x="-799" y="-77">t &lt;= speed since t is object type. It can move when t == speed (cannot always move)</label>
-		</location>
-		<location id="id7" x="8" y="-212">
-			<name x="-9" y="-246">Warping</name>
-			<label kind="invariant" x="-17" y="-195">t &lt;= speed * 2</label>
-		</location>
-		<init ref="id6"/>
-		<transition id="id8">
-			<source ref="id7"/>
-			<target ref="id6"/>
-			<label kind="guard" x="-263" y="-314">t == speed * 2</label>
-			<label kind="assignment" x="-170" y="-297">t = 0,
-moveVehicle()</label>
-			<nail x="-221" y="-272"/>
-		</transition>
-		<transition id="id9">
-			<source ref="id6"/>
-			<target ref="id7"/>
-			<label kind="guard" x="-331" y="-204">t == speed &amp;&amp; !validPosition()</label>
-		</transition>
-		<transition id="id10">
-			<source ref="id6"/>
-			<target ref="id6"/>
-			<label kind="guard" x="-629" y="-306">t == speed &amp;&amp; validPosition()</label>
-			<label kind="assignment" x="-663" y="-246">t = 0,
-moveVehicle(),
-check_game_state()</label>
-			<nail x="-501" y="-272"/>
-			<nail x="-501" y="-144"/>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
@@ -302,6 +309,8 @@ row_10 = DynamicRow(10, 2);
 row_11 = DynamicRow(11, 2);
 
 diving_turtles = DivingTurtleGroups();
+
+frogger = Frogger();
 
 system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11, diving_turtles;</system>
 	<queries>
