@@ -125,6 +125,7 @@ const int win_level_points = 100;
 int[0, maxTimerStart] maxTimer = maxTimerStart;
 
 int[0,maxLives] lives = maxLives;
+int level = 1;
 
 int[0, MAX_X+1] x = start_x;
 int[0, MAX_Y+1] y = start_y;
@@ -137,22 +138,29 @@ bool dead = false;
 void move(int direction) {
     // davide
 }
+
 void respawn(){
-    // edo
+    // reset position    
+    x = start_x;
+    y = start_y;
+    // reset timer
+    maxTimer = maxTimerStart - (2 * (level - 1)); // respaw in case of lvl win or death
 }
+
 void win_level() {
     // davide
 }
 void die() {
-    // edo
+    lives = lives - 1;
+    respawn();
 }
 
 void check_death() {
     // davide
 }
-bool is_free_home_bay() {
-    // edo
-    return true;
+bool is_free_home_bay(int col) {
+    if (col % 2 != 0) col = col - 1;
+    return not home_bays_occupied[col/4];
 }</declaration>
 		<location id="id4" x="-33" y="8">
 			<name x="-68" y="-34">Reset</name>
@@ -173,7 +181,8 @@ bool is_free_home_bay() {
 		<transition id="id9">
 			<source ref="id8"/>
 			<target ref="id4"/>
-			<label kind="assignment" x="-42" y="-127">respawn()</label>
+			<label kind="assignment" x="-42" y="-127">timer = 0,
+respawn()</label>
 		</transition>
 		<transition id="id10">
 			<source ref="id6"/>
