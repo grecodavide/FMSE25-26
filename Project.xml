@@ -134,9 +134,17 @@ int points = 0;
 
 bool dead = false;
 
+const int direction_up = 1;
+const int direction_down = 2;
+const int direction_left = 3;
+const int direction_right = 4;
 
 void move(int direction) {
-    // davide
+        if (direction == direction_left) {
+        } else if (direction == direction_right) {
+        } else if (direction == direction_down) {
+        } else { // up
+        }
 }
 
 void respawn(){
@@ -148,7 +156,11 @@ void respawn(){
 }
 
 void win_level() {
-    // davide
+    for (i : int[0, 4]) {
+        home_bays_occupied[i] = false;
+    }
+    level = level+1;
+    respawn();
 }
 void die() {
     lives = lives - 1;
@@ -156,9 +168,17 @@ void die() {
 }
 
 void check_death() {
-    // davide
+    if (y != 0 &amp;&amp; y != 6) { // always safe in those two
+        int[-1, 2] curr_cell = getCell(y, x);
+        if (y &gt; 6 &amp;&amp; y &lt; 12) {
+            dead = curr_cell == 0 || (curr_cell == 2 &amp;&amp; !are_diving_turtles_up);
+        } else {
+            dead = curr_cell != 0;
+        }
+    }
 }
-bool is_free_home_bay(int col) {
+bool is_free_home_bay() {
+    int col = y;
     if (col % 2 != 0) col = col - 1;
     return not home_bays_occupied[col/4];
 }</declaration>
@@ -198,7 +218,7 @@ respawn()</label>
 		<transition id="id12">
 			<source ref="id6"/>
 			<target ref="id5"/>
-			<label kind="guard" x="-144" y="110">timer == maxTimer || dead</label>
+			<label kind="guard" x="-187" y="110">timer == maxTimer || dead</label>
 			<label kind="assignment" x="-102" y="127">die()</label>
 			<nail x="-76" y="110"/>
 		</transition>
