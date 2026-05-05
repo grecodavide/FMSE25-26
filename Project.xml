@@ -210,6 +210,9 @@ void respawn(){
     maxTimer = maxTimerStart - (2 * (level - 1)); // respaw in case of lvl win or death
 }
 
+/**
+* Resets the world after winning (i.e. occupying all five home bays)
+*/
 void win_level() {
     for (i : int[0, 4]) {
         home_bays_occupied[i] = false;
@@ -217,11 +220,15 @@ void win_level() {
     level = level+1;
     respawn();
 }
+
 void die() {
     lives = lives - 1;
     respawn();
 }
 
+/**
+* Checks if the current position occupied by frogger kills him.
+*/
 void check_death() {
     if (y != 0 &amp;&amp; y != 6) { // always safe in those two
         int[-1, 2] curr_cell = getCell(y, x);
