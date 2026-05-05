@@ -127,23 +127,78 @@ int[0, maxTimerStart] maxTimer = maxTimerStart;
 int[0,maxLives] lives = maxLives;
 int level = 1;
 
-int[0, MAX_X+1] x = start_x;
-int[0, MAX_Y+1] y = start_y;
+int[0, MAX_X] x = start_x;
+int[0, MAX_Y] y = start_y;
 
 int points = 0;
 
 bool dead = false;
 
+
+bool is_free_home_bay(int col) {
+    if (col % 2 != 0) col = col - 1;
+    return not home_bays_occupied[col/4];
+}
+
+bool isWall(int[0, MAX_X] col) {
+    if (col % 2 != 0) col = col - 1;
+    return ((col/2) % 2 == 1) || !is_free_home_bay(col);
+}
+
+/**
+* Checks if movement in the specified cell is valid.
+*
+* @param: int - row: the destination's y coordinate
+* @param: int - col: the destination's x coordinate
+*
+* @returns true if frogger can move into the cell, false otherwise.
+*          Note that a movement that kills frogger is still a valid movement
+*/
+bool canMoveInto(int[-1, MAX_Y+1] row, int[-1, MAX_X+1] col) {
+    // movement is valid if:
+    // - between map boundaries AND
+    //     - the row is not the last OR
+    //     - the cell is not a wall or a occupied home bay 
+    return (
+        (row &gt;= 0 &amp;&amp; row &lt;= MAX_Y &amp;&amp; col &gt;= 0 &amp;&amp; col &lt;= MAX_X) &amp;&amp; 
+        (
+            row != MAX_Y || 
+            isWall(col)
+        )
+    );    
+}
 const int direction_up = 1;
 const int direction_down = 2;
 const int direction_left = 3;
 const int direction_right = 4;
 
-void move(int direction) {
-        if (direction == direction_left) {
-        } else if (direction == direction_right) {
+/**
+* Attempts to move in the specified direction.
+* Note that this function does not check safety of frogger,
+* so if a movement kills him, it will still happen.
+*
+* @param: int - direction: the desired direction:
+*               -  1 means up
+*               -  2 means down
+*               -  3 means left
+*               -  4 means right
+*/
+void move(int[1, 4] direction) {
+        int [-1, MAX_Y+1] row = y;
+        int [-1, MAX_X+1] col = x;
+        if (direction == direction_up) {
+            row = row+1;
         } else if (direction == direction_down) {
-        } else { // up
+            row = row-1;
+        } else if (direction == direction_left) {
+            col = col-1;
+        } else { // right
+            col = col+1;
+        }
+
+        if (canMoveInto(row, col)) {
+            y = row;
+            x = col;
         }
 }
 
@@ -177,11 +232,8 @@ void check_death() {
         }
     }
 }
-bool is_free_home_bay() {
-    int col = y;
-    if (col % 2 != 0) col = col - 1;
-    return not home_bays_occupied[col/4];
-}</declaration>
+
+</declaration>
 		<location id="id4" x="-33" y="8">
 			<name x="-68" y="-34">Reset</name>
 		</location>
@@ -207,7 +259,7 @@ respawn()</label>
 		<transition id="id10">
 			<source ref="id6"/>
 			<target ref="id8"/>
-			<label kind="guard" x="144" y="-153">y == MAX_Y+1 &amp;&amp; is_free_home_bay()</label>
+			<label kind="guard" x="144" y="-153">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
 		</transition>
 		<transition id="id11">
 			<source ref="id6"/>
