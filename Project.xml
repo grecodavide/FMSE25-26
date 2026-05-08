@@ -49,6 +49,8 @@ int[0,MATRIX_COLS] offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 // Global status of the 2 diving turtle groups, it is shared because the have the same initial state and transition timers
 bool are_diving_turtles_up = true;
 
+int[-1, 1] direction = 0;
+
 /**
 * Returns the current cell occupying a given position.
 *
@@ -56,13 +58,14 @@ bool are_diving_turtles_up = true;
 * @param: int - row: the y coordinate
 *
 * @returns an int representing what occupies the given cell:
+* - -1 means the position is outside of the boundaries (warping)
 * -  0 means the cell is empty
 * -  1 means there is an object on it (depending on the row, a vehicle, a floating object or a wall)
 * -  2 means the cell is a whithin a diving turtle group
-* - -1 means the position is outside of the boundaries (warping)
 */
 int[-1,2] getCell(int row, int col) {
-    int dir = directions[row];
+    int[-1,1] dir = directions[row];
+    direction = dir;
     int offset = offsets[row] * dir;
     int cur_col = (col + offset) % MATRIX_COLS;
 
@@ -235,12 +238,18 @@ void die() {
 * Checks if the current position occupied by frogger kills him.
 */
 void check_death() {
-    if (y != 0 &amp;&amp; y != 6) { // always safe in those two
-        int[-1, 2] curr_cell = getCell(y, x);
-        if (y &gt; 6 &amp;&amp; y &lt; 12) {
-            dead = curr_cell == 0 || (curr_cell == 2 &amp;&amp; !are_diving_turtles_up);
+    if (timer == maxTimer) {
+        dead = true;
+    } else {
+        if (y != 0 &amp;&amp; y != 6) { // always safe in those two
+            int[-1, 2] curr_cell = getCell(y, x);
+            if (y &gt; 6 &amp;&amp; y &lt; 12) {
+                dead = curr_cell == 0 || (curr_cell == 2 &amp;&amp; !are_diving_turtles_up);
+            } else {
+                dead = curr_cell != 0;
+            }
         } else {
-            dead = curr_cell != 0;
+            dead = false;
         }
     }
 }
@@ -248,64 +257,65 @@ void check_death() {
 </declaration>
 		<location id="id4" x="-33" y="8">
 			<name x="-68" y="-34">Reset</name>
+			<label kind="invariant" x="-110" y="25">t &lt;= 2*time_unit_to_s</label>
 		</location>
 		<location id="id5" x="-270" y="9">
-			<name x="-280" y="-25">Dead</name>
+			<name x="-280" y="-25">Died</name>
+			<label kind="invariant" x="-289" y="25">dead</label>
 		</location>
-		<location id="id6" x="297" y="8">
-			<name x="314" y="0">Playing</name>
+		<location id="id6" x="356" y="0">
+			<name x="323" y="-42">Playing</name>
+			<label kind="invariant" x="331" y="17">t &lt;= 1</label>
 		</location>
 		<location id="id7" x="-561" y="8">
 			<name x="-571" y="-26">gameOver</name>
 		</location>
-		<location id="id8" x="127" y="-229">
-			<name x="85" y="-263">TouchDown</name>
-		</location>
 		<init ref="id4"/>
-		<transition id="id9">
-			<source ref="id8"/>
+		<transition id="id8">
+			<source ref="id6"/>
 			<target ref="id4"/>
-			<label kind="assignment" x="-51" y="-136">timer = 0,
+			<label kind="guard" x="170" y="-136">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
+			<label kind="assignment" x="8" y="-144">timer = 0,
 respawn()</label>
+			<nail x="153" y="-127"/>
+		</transition>
+		<transition id="id9">
+			<source ref="id6"/>
+			<target ref="id6"/>
+			<label kind="guard" x="484" y="-85">t == 1</label>
+			<label kind="assignment" x="484" y="-51">t = 0,
+move(direction_up),
+check_death()</label>
+			<nail x="476" y="-68"/>
+			<nail x="476" y="0"/>
 		</transition>
 		<transition id="id10">
 			<source ref="id6"/>
-			<target ref="id8"/>
-			<label kind="guard" x="187" y="-187">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
+			<target ref="id5"/>
+			<label kind="guard" x="-42" y="102">t == 0 &amp;&amp; dead</label>
+			<label kind="assignment" x="0" y="119">die()</label>
+			<nail x="17" y="102"/>
 		</transition>
 		<transition id="id11">
-			<source ref="id6"/>
-			<target ref="id6"/>
-			<label kind="guard" x="433" y="-42">t == 1</label>
-			<label kind="assignment" x="433" y="-8">t = 0,
-move(direction_up),
-check_death()</label>
-			<nail x="425" y="-76"/>
-			<nail x="425" y="93"/>
-		</transition>
-		<transition id="id12">
-			<source ref="id6"/>
-			<target ref="id5"/>
-			<label kind="guard" x="-187" y="110">(timer == maxTimer) || dead</label>
-			<label kind="assignment" x="-102" y="127">die()</label>
-			<nail x="-76" y="110"/>
-		</transition>
-		<transition id="id13">
 			<source ref="id5"/>
 			<target ref="id4"/>
-			<label kind="guard" x="-195" y="-17">lives &gt; 0</label>
-			<nail x="-153" y="8"/>
+			<label kind="guard" x="-187" y="-85">lives &gt; 0</label>
+			<label kind="assignment" x="-187" y="-59">timer = 0,
+t = 0,
+respawn()</label>
+			<nail x="-144" y="8"/>
 		</transition>
-		<transition id="id14">
+		<transition id="id12">
 			<source ref="id5"/>
 			<target ref="id7"/>
 			<label kind="guard" x="-450" y="-34">lives == 0</label>
 			<label kind="synchronisation" x="-450" y="-17">game_over!</label>
 		</transition>
-		<transition id="id15">
+		<transition id="id13">
 			<source ref="id4"/>
 			<target ref="id6"/>
 			<label kind="guard" x="25" y="-17">t == 2 * time_unit_to_s</label>
+			<label kind="assignment" x="102" y="8">t = 0</label>
 		</transition>
 	</template>
 	<template>
@@ -334,26 +344,26 @@ void emerge() {
 
 
 </declaration>
-		<location id="id16" x="-34" y="0">
+		<location id="id14" x="-34" y="0">
 			<name x="-85" y="-59">AboveSurface</name>
 			<label kind="invariant" x="-68" y="34">t &lt;= tAboveSurface</label>
 		</location>
-		<location id="id17" x="-433" y="-8">
+		<location id="id15" x="-433" y="-8">
 			<name x="-476" y="-51">Submerged</name>
 			<label kind="invariant" x="-552" y="17">t &lt;= tUnderSurface</label>
 		</location>
-		<init ref="id16"/>
-		<transition id="id18">
-			<source ref="id17"/>
-			<target ref="id16"/>
+		<init ref="id14"/>
+		<transition id="id16">
+			<source ref="id15"/>
+			<target ref="id14"/>
 			<label kind="guard" x="-425" y="68">t == tUnderSurface</label>
 			<label kind="assignment" x="-161" y="76">emerge(),
 t = 0</label>
 			<nail x="-221" y="102"/>
 		</transition>
-		<transition id="id19">
-			<source ref="id16"/>
-			<target ref="id17"/>
+		<transition id="id17">
+			<source ref="id14"/>
+			<target ref="id15"/>
 			<label kind="guard" x="-161" y="-102">t == tAboveSurface</label>
 			<label kind="assignment" x="-382" y="-110">submerge(),
 t = 0</label>
@@ -368,14 +378,14 @@ t = 0</label>
 void update_offset() {
     offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
 }</declaration>
-		<location id="id20" x="0" y="0">
+		<location id="id18" x="0" y="0">
 			<name x="-25" y="-42">Moving</name>
 			<label kind="invariant" x="-34" y="34">t &lt;= speed</label>
 		</location>
-		<init ref="id20"/>
-		<transition id="id21">
-			<source ref="id20"/>
-			<target ref="id20"/>
+		<init ref="id18"/>
+		<transition id="id19">
+			<source ref="id18"/>
+			<target ref="id18"/>
 			<label kind="guard" x="-195" y="-110">t == speed</label>
 			<label kind="assignment" x="-195" y="85">update_offset(),
 t = 0</label>
