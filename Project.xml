@@ -288,17 +288,26 @@ void check_death() {
 		</location>
 		<init ref="id4"/>
 		<transition id="id9">
+			<source ref="id6"/>
+			<target ref="id8"/>
+			<label kind="guard" x="442" y="0">t == 1</label>
+			<label kind="assignment" x="518" y="0">t = 0,
+move(direction_none),
+check_death()</label>
+			<nail x="663" y="102"/>
+		</transition>
+		<transition id="id10">
 			<source ref="id8"/>
 			<target ref="id7"/>
 			<label kind="guard" x="-187" y="153">dead &amp;&amp; lives == 1</label>
 		</transition>
-		<transition id="id10">
+		<transition id="id11">
 			<source ref="id8"/>
 			<target ref="id6"/>
 			<label kind="guard" x="263" y="76">!dead</label>
 			<nail x="306" y="93"/>
 		</transition>
-		<transition id="id11">
+		<transition id="id12">
 			<source ref="id6"/>
 			<target ref="id4"/>
 			<label kind="guard" x="170" y="-93">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
@@ -306,7 +315,7 @@ void check_death() {
 respawn()</label>
 			<nail x="153" y="-68"/>
 		</transition>
-		<transition id="id12">
+		<transition id="id13">
 			<source ref="id6"/>
 			<target ref="id8"/>
 			<label kind="guard" x="365" y="42">t == 1</label>
@@ -314,20 +323,20 @@ respawn()</label>
 move(direction_up),
 check_death()</label>
 		</transition>
-		<transition id="id13">
+		<transition id="id14">
 			<source ref="id8"/>
 			<target ref="id5"/>
 			<label kind="guard" x="-399" y="51">dead &amp;&amp; lives &gt; 1</label>
 			<label kind="assignment" x="-289" y="68">die()</label>
 		</transition>
-		<transition id="id14">
+		<transition id="id15">
 			<source ref="id5"/>
 			<target ref="id4"/>
 			<label kind="assignment" x="-331" y="-51">timer = 0,
 t = 0,
 respawn()</label>
 		</transition>
-		<transition id="id15">
+		<transition id="id16">
 			<source ref="id4"/>
 			<target ref="id6"/>
 			<label kind="guard" x="25" y="-17">t == 2 * time_unit_to_s</label>
@@ -360,26 +369,26 @@ void emerge() {
 
 
 </declaration>
-		<location id="id16" x="-34" y="0">
+		<location id="id17" x="-34" y="0">
 			<name x="-51" y="-34">AboveSurface</name>
 			<label kind="invariant" x="-68" y="34">t &lt;= tAboveSurface</label>
 		</location>
-		<location id="id17" x="-433" y="-8">
+		<location id="id18" x="-433" y="-8">
 			<name x="-501" y="-42">Submerged</name>
 			<label kind="invariant" x="-552" y="17">t &lt;= tUnderSurface</label>
 		</location>
-		<init ref="id16"/>
-		<transition id="id18">
-			<source ref="id17"/>
-			<target ref="id16"/>
+		<init ref="id17"/>
+		<transition id="id19">
+			<source ref="id18"/>
+			<target ref="id17"/>
 			<label kind="guard" x="-425" y="68">t == tUnderSurface</label>
 			<label kind="assignment" x="-161" y="76">emerge(),
 t = 0</label>
 			<nail x="-221" y="102"/>
 		</transition>
-		<transition id="id19">
-			<source ref="id16"/>
-			<target ref="id17"/>
+		<transition id="id20">
+			<source ref="id17"/>
+			<target ref="id18"/>
 			<label kind="guard" x="-161" y="-102">t == tAboveSurface</label>
 			<label kind="assignment" x="-382" y="-110">submerge(),
 t = 0</label>
@@ -394,14 +403,14 @@ t = 0</label>
 void update_offset() {
     offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
 }</declaration>
-		<location id="id20" x="0" y="0">
+		<location id="id21" x="0" y="0">
 			<name x="-25" y="-42">Moving</name>
 			<label kind="invariant" x="-34" y="34">t &lt;= speed</label>
 		</location>
-		<init ref="id20"/>
-		<transition id="id21">
-			<source ref="id20"/>
-			<target ref="id20"/>
+		<init ref="id21"/>
+		<transition id="id22">
+			<source ref="id21"/>
+			<target ref="id21"/>
 			<label kind="guard" x="-195" y="-110">t == speed</label>
 			<label kind="assignment" x="-195" y="85">update_offset(),
 t = 0</label>
@@ -459,8 +468,10 @@ This is true by construction in our model, we still check that offsets stay with
 			</result>
 		</query>
 		<query>
-			<formula/>
+			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
 			<comment/>
+			<result outcome="failure" type="quality" timestamp="2026-05-08 14:58:02 +0200">
+			</result>
 		</query>
 	</queries>
 </nta>
