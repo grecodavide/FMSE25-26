@@ -12,10 +12,19 @@ const int STEPS_WARP = 2;                      // steps needed for the warping t
 const int MATRIX_COLS = MAX_X+1+STEPS_WARP;    // number of columns in the world matrix
 
 // directions of the rows:
-// -1 means right to left
+// -1 means left to right
 //  0 means row does not move
-//  1 means left to right
-const int[-1,1] directions[MAX_Y+1] = {0, -1, 1, -1, 1, -1, 0, -1, 1, 1, -1, 1, 0};
+//  1 means right to left
+// This is because of a simple reason: the whole line moves. Let's assume a line moves
+// from left to right. It means that after a given amount of time, its cells will be @ cell + offset.
+// 0 0 1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 / /
+//                   ^
+// the row shifts of 2 LTR, so it becomes
+// / / 0 0 1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0
+//                   ^
+// Which is 2 cells BEFORE, not AFTER. The rows moves LTR, so to obtain the current cell
+// I need to consider a movement RTL, to find out the original cell
+const int[-1,1] directions[MAX_Y+1] = {0, 1, -1, 1, -1, 1, 0, 1, -1, -1, 1, -1, 0};
 
 // state of the world:
 // -  0 means the cell is empty
@@ -51,6 +60,8 @@ bool are_diving_turtles_up = true;
 
 int[-1, 1] direction = 0;
 
+int suca = 0;
+
 /**
 * Returns the current cell occupying a given position.
 *
@@ -65,9 +76,9 @@ int[-1, 1] direction = 0;
 */
 int[-1,2] getCell(int row, int col) {
     int[-1,1] dir = directions[row];
-    direction = dir;
     int offset = offsets[row] * dir;
-    int cur_col = (col + offset) % MATRIX_COLS;
+    int cur_col = (MATRIX_COLS + col + offset) % MATRIX_COLS;
+    suca = cur_col;
 
     return rows[row][cur_col];
 }
@@ -231,7 +242,6 @@ void win_level() {
 
 void die() {
     lives = lives - 1;
-    respawn();
 }
 
 /**
@@ -242,11 +252,12 @@ void check_death() {
         dead = true;
     } else {
         if (y != 0 &amp;&amp; y != 6) { // always safe in those two
-            int[-1, 2] curr_cell = getCell(y, x);
+            int[-1, 2] curr_cell = 0;
+            curr_cell = getCell(y, x);
             if (y &gt; 6 &amp;&amp; y &lt; 12) {
                 dead = curr_cell == 0 || (curr_cell == 2 &amp;&amp; !are_diving_turtles_up);
             } else {
-                dead = curr_cell != 0;
+                dead = curr_cell == 1;
             }
         } else {
             dead = false;
@@ -256,62 +267,67 @@ void check_death() {
 
 </declaration>
 		<location id="id4" x="-33" y="8">
-			<name x="-68" y="-34">Reset</name>
-			<label kind="invariant" x="-110" y="25">t &lt;= 2*time_unit_to_s</label>
+			<name x="-59" y="-25">Reset</name>
+			<label kind="invariant" x="-93" y="25">t &lt;= 2*time_unit_to_s</label>
 		</location>
-		<location id="id5" x="-270" y="9">
-			<name x="-280" y="-25">Died</name>
-			<label kind="invariant" x="-289" y="25">dead</label>
+		<location id="id5" x="-484" y="8">
+			<name x="-494" y="-26">Died</name>
+			<label kind="invariant" x="-503" y="24">dead</label>
+			<urgent/>
 		</location>
 		<location id="id6" x="356" y="0">
 			<name x="323" y="-42">Playing</name>
-			<label kind="invariant" x="331" y="17">t &lt;= 1</label>
+			<label kind="invariant" x="374" y="-17">t &lt;= 1</label>
 		</location>
-		<location id="id7" x="-561" y="8">
-			<name x="-571" y="-26">gameOver</name>
+		<location id="id7" x="-493" y="178">
+			<name x="-503" y="144">gameOver</name>
+		</location>
+		<location id="id8" x="357" y="178">
+			<name x="348" y="195">Moved</name>
+			<urgent/>
 		</location>
 		<init ref="id4"/>
-		<transition id="id8">
-			<source ref="id6"/>
-			<target ref="id4"/>
-			<label kind="guard" x="170" y="-136">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
-			<label kind="assignment" x="8" y="-144">timer = 0,
-respawn()</label>
-			<nail x="153" y="-127"/>
-		</transition>
 		<transition id="id9">
-			<source ref="id6"/>
-			<target ref="id6"/>
-			<label kind="guard" x="484" y="-85">t == 1</label>
-			<label kind="assignment" x="484" y="-51">t = 0,
-move(direction_up),
-check_death()</label>
-			<nail x="476" y="-68"/>
-			<nail x="476" y="0"/>
+			<source ref="id8"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-187" y="153">dead &amp;&amp; lives == 1</label>
 		</transition>
 		<transition id="id10">
-			<source ref="id6"/>
-			<target ref="id5"/>
-			<label kind="guard" x="-42" y="102">t == 0 &amp;&amp; dead</label>
-			<label kind="assignment" x="0" y="119">die()</label>
-			<nail x="17" y="102"/>
+			<source ref="id8"/>
+			<target ref="id6"/>
+			<label kind="guard" x="263" y="76">!dead</label>
+			<nail x="306" y="93"/>
 		</transition>
 		<transition id="id11">
-			<source ref="id5"/>
+			<source ref="id6"/>
 			<target ref="id4"/>
-			<label kind="guard" x="-187" y="-85">lives &gt; 0</label>
-			<label kind="assignment" x="-187" y="-59">timer = 0,
-t = 0,
+			<label kind="guard" x="170" y="-93">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
+			<label kind="assignment" x="25" y="-93">timer = 0,
 respawn()</label>
-			<nail x="-144" y="8"/>
+			<nail x="153" y="-68"/>
 		</transition>
 		<transition id="id12">
-			<source ref="id5"/>
-			<target ref="id7"/>
-			<label kind="guard" x="-450" y="-34">lives == 0</label>
-			<label kind="synchronisation" x="-450" y="-17">game_over!</label>
+			<source ref="id6"/>
+			<target ref="id8"/>
+			<label kind="guard" x="365" y="42">t == 1</label>
+			<label kind="assignment" x="365" y="68">t = 0,
+move(direction_up),
+check_death()</label>
 		</transition>
 		<transition id="id13">
+			<source ref="id8"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-399" y="51">dead &amp;&amp; lives &gt; 1</label>
+			<label kind="assignment" x="-289" y="68">die()</label>
+		</transition>
+		<transition id="id14">
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="assignment" x="-331" y="-51">timer = 0,
+t = 0,
+respawn()</label>
+		</transition>
+		<transition id="id15">
 			<source ref="id4"/>
 			<target ref="id6"/>
 			<label kind="guard" x="25" y="-17">t == 2 * time_unit_to_s</label>
@@ -344,26 +360,26 @@ void emerge() {
 
 
 </declaration>
-		<location id="id14" x="-34" y="0">
-			<name x="-85" y="-59">AboveSurface</name>
+		<location id="id16" x="-34" y="0">
+			<name x="-51" y="-34">AboveSurface</name>
 			<label kind="invariant" x="-68" y="34">t &lt;= tAboveSurface</label>
 		</location>
-		<location id="id15" x="-433" y="-8">
-			<name x="-476" y="-51">Submerged</name>
+		<location id="id17" x="-433" y="-8">
+			<name x="-501" y="-42">Submerged</name>
 			<label kind="invariant" x="-552" y="17">t &lt;= tUnderSurface</label>
 		</location>
-		<init ref="id14"/>
-		<transition id="id16">
-			<source ref="id15"/>
-			<target ref="id14"/>
+		<init ref="id16"/>
+		<transition id="id18">
+			<source ref="id17"/>
+			<target ref="id16"/>
 			<label kind="guard" x="-425" y="68">t == tUnderSurface</label>
 			<label kind="assignment" x="-161" y="76">emerge(),
 t = 0</label>
 			<nail x="-221" y="102"/>
 		</transition>
-		<transition id="id17">
-			<source ref="id14"/>
-			<target ref="id15"/>
+		<transition id="id19">
+			<source ref="id16"/>
+			<target ref="id17"/>
 			<label kind="guard" x="-161" y="-102">t == tAboveSurface</label>
 			<label kind="assignment" x="-382" y="-110">submerge(),
 t = 0</label>
@@ -378,14 +394,14 @@ t = 0</label>
 void update_offset() {
     offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
 }</declaration>
-		<location id="id18" x="0" y="0">
+		<location id="id20" x="0" y="0">
 			<name x="-25" y="-42">Moving</name>
 			<label kind="invariant" x="-34" y="34">t &lt;= speed</label>
 		</location>
-		<init ref="id18"/>
-		<transition id="id19">
-			<source ref="id18"/>
-			<target ref="id18"/>
+		<init ref="id20"/>
+		<transition id="id21">
+			<source ref="id20"/>
+			<target ref="id20"/>
 			<label kind="guard" x="-195" y="-110">t == speed</label>
 			<label kind="assignment" x="-195" y="85">update_offset(),
 t = 0</label>
@@ -415,7 +431,7 @@ system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11, d
 		<query>
 			<formula>A[] not deadlock</formula>
 			<comment>1.1) Without considering Frogger: the game never reaches a deadlock state.</comment>
-			<result outcome="success" type="quality" timestamp="2026-04-29 09:28:18 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-08 13:50:39 +0200">
 			</result>
 		</query>
 		<query>
@@ -433,13 +449,13 @@ system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11, d
 move inside their predefined row.
 
 This is true by construction in our model, we still check that offsets stay within (0, MATRIX_COLS)</comment>
-			<result outcome="success" type="quality" timestamp="2026-04-29 09:27:32 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-08 13:50:42 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>A[] global_clock == 4 imply offsets[1] == 1</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-04-29 08:53:37 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-08 13:50:45 +0200">
 			</result>
 		</query>
 		<query>
