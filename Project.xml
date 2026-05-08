@@ -167,6 +167,8 @@ bool canMoveInto(int[-1, MAX_Y+1] row, int[-1, MAX_X+1] col) {
         )
     );    
 }
+
+const int direction_none = 0;
 const int direction_up = 1;
 const int direction_down = 2;
 const int direction_left = 3;
@@ -178,12 +180,14 @@ const int direction_right = 4;
 * so if a movement kills him, it will still happen.
 *
 * @param: int - direction: the desired direction:
+*               -  0 means stay still
 *               -  1 means up
 *               -  2 means down
 *               -  3 means left
 *               -  4 means right
 */
-void move(int[1, 4] direction) {
+void move(int[0, 4] direction) {
+    if (direction != direction_none) {
         int [-1, MAX_Y+1] row = y;
         int [-1, MAX_X+1] col = x;
         if (direction == direction_up) {
@@ -200,6 +204,7 @@ void move(int[1, 4] direction) {
             y = row;
             x = col;
         }
+    }
 }
 
 void respawn(){
@@ -247,8 +252,8 @@ void check_death() {
 		<location id="id5" x="-270" y="9">
 			<name x="-280" y="-25">Dead</name>
 		</location>
-		<location id="id6" x="127" y="8">
-			<name x="144" y="0">Playing</name>
+		<location id="id6" x="297" y="8">
+			<name x="314" y="0">Playing</name>
 		</location>
 		<location id="id7" x="-561" y="8">
 			<name x="-571" y="-26">gameOver</name>
@@ -260,52 +265,47 @@ void check_death() {
 		<transition id="id9">
 			<source ref="id8"/>
 			<target ref="id4"/>
-			<label kind="assignment" x="-42" y="-127">timer = 0,
+			<label kind="assignment" x="-51" y="-136">timer = 0,
 respawn()</label>
 		</transition>
 		<transition id="id10">
 			<source ref="id6"/>
 			<target ref="id8"/>
-			<label kind="guard" x="144" y="-153">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
+			<label kind="guard" x="187" y="-187">y == MAX_Y+1 &amp;&amp; is_free_home_bay(y)</label>
 		</transition>
 		<transition id="id11">
 			<source ref="id6"/>
 			<target ref="id6"/>
-			<nail x="255" y="-76"/>
-			<nail x="255" y="93"/>
+			<label kind="guard" x="433" y="-42">t == 1</label>
+			<label kind="assignment" x="433" y="-8">t = 0,
+move(direction_up),
+check_death()</label>
+			<nail x="425" y="-76"/>
+			<nail x="425" y="93"/>
 		</transition>
 		<transition id="id12">
 			<source ref="id6"/>
 			<target ref="id5"/>
-			<label kind="guard" x="-187" y="110">timer == maxTimer || dead</label>
+			<label kind="guard" x="-187" y="110">(timer == maxTimer) || dead</label>
 			<label kind="assignment" x="-102" y="127">die()</label>
 			<nail x="-76" y="110"/>
 		</transition>
 		<transition id="id13">
-			<source ref="id6"/>
-			<target ref="id6"/>
-			<label kind="guard" x="93" y="110">t == 1</label>
-			<label kind="assignment" x="93" y="127">t = 0,
-check_death()</label>
-			<nail x="68" y="110"/>
-			<nail x="68" y="110"/>
-			<nail x="178" y="110"/>
-		</transition>
-		<transition id="id14">
 			<source ref="id5"/>
 			<target ref="id4"/>
 			<label kind="guard" x="-195" y="-17">lives &gt; 0</label>
 			<nail x="-153" y="8"/>
 		</transition>
-		<transition id="id15">
+		<transition id="id14">
 			<source ref="id5"/>
 			<target ref="id7"/>
 			<label kind="guard" x="-450" y="-34">lives == 0</label>
 			<label kind="synchronisation" x="-450" y="-17">game_over!</label>
 		</transition>
-		<transition id="id16">
+		<transition id="id15">
 			<source ref="id4"/>
 			<target ref="id6"/>
+			<label kind="guard" x="25" y="-17">t == 2 * time_unit_to_s</label>
 		</transition>
 	</template>
 	<template>
@@ -334,26 +334,26 @@ void emerge() {
 
 
 </declaration>
-		<location id="id17" x="-34" y="0">
+		<location id="id16" x="-34" y="0">
 			<name x="-85" y="-59">AboveSurface</name>
 			<label kind="invariant" x="-68" y="34">t &lt;= tAboveSurface</label>
 		</location>
-		<location id="id18" x="-433" y="-8">
+		<location id="id17" x="-433" y="-8">
 			<name x="-476" y="-51">Submerged</name>
 			<label kind="invariant" x="-552" y="17">t &lt;= tUnderSurface</label>
 		</location>
-		<init ref="id17"/>
-		<transition id="id19">
-			<source ref="id18"/>
-			<target ref="id17"/>
+		<init ref="id16"/>
+		<transition id="id18">
+			<source ref="id17"/>
+			<target ref="id16"/>
 			<label kind="guard" x="-425" y="68">t == tUnderSurface</label>
 			<label kind="assignment" x="-161" y="76">emerge(),
 t = 0</label>
 			<nail x="-221" y="102"/>
 		</transition>
-		<transition id="id20">
-			<source ref="id17"/>
-			<target ref="id18"/>
+		<transition id="id19">
+			<source ref="id16"/>
+			<target ref="id17"/>
 			<label kind="guard" x="-161" y="-102">t == tAboveSurface</label>
 			<label kind="assignment" x="-382" y="-110">submerge(),
 t = 0</label>
@@ -368,14 +368,14 @@ t = 0</label>
 void update_offset() {
     offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
 }</declaration>
-		<location id="id21" x="0" y="0">
+		<location id="id20" x="0" y="0">
 			<name x="-25" y="-42">Moving</name>
 			<label kind="invariant" x="-34" y="34">t &lt;= speed</label>
 		</location>
-		<init ref="id21"/>
-		<transition id="id22">
-			<source ref="id21"/>
-			<target ref="id21"/>
+		<init ref="id20"/>
+		<transition id="id21">
+			<source ref="id20"/>
+			<target ref="id20"/>
 			<label kind="guard" x="-195" y="-110">t == speed</label>
 			<label kind="assignment" x="-195" y="85">update_offset(),
 t = 0</label>
@@ -400,7 +400,7 @@ diving_turtles = DivingTurtleGroups();
 
 frogger = Frogger();
 
-system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11, diving_turtles;</system>
+system row_1, row_2, row_3, row_4, row_5, row_7, row_8, row_9, row_10, row_11, diving_turtles, frogger;</system>
 	<queries>
 		<query>
 			<formula>A[] not deadlock</formula>
