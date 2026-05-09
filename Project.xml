@@ -299,12 +299,12 @@ bool bay_available() {
 			<label kind="invariant" x="-119" y="-51">t &lt;= 2*time_unit_to_s</label>
 		</location>
 		<location id="id5" x="-535" y="221">
-			<name x="-568" y="187">Died</name>
+			<name x="-586" y="187">Died</name>
 			<label kind="invariant" x="-554" y="237">frogger_died</label>
 			<urgent/>
 		</location>
 		<location id="id6" x="442" y="17">
-			<name x="417" y="-25">Playing</name>
+			<name x="459" y="-25">Playing</name>
 			<label kind="invariant" x="460" y="-8">t &lt;= 1 &amp;&amp; !frogger_died</label>
 		</location>
 		<location id="id7" x="-535" y="374">
@@ -529,8 +529,6 @@ system frogger, world;</system>
 		<query>
 			<formula>A[] not deadlock</formula>
 			<comment>1.1) Without considering Frogger: the game never reaches a deadlock state.</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-09 10:01:36 +0200">
-			</result>
 		</query>
 		<query>
 			<formula>A[] (offsets[1] &gt;= 0 &amp;&amp; offsets[1] &lt; MATRIX_COLS &amp;&amp;
