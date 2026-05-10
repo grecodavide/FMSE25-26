@@ -198,19 +198,34 @@ const int move_up_points = 1;
 const int occupy_home_bay_points = 5;
 const int win_level_points = 100;
 
+const int direction_none = 0;
+const int direction_up = 1;
+const int direction_down = 2;
+const int direction_left = 3;
+const int direction_right = 4;
+
 int[0, maxTimerStart] maxTimer = maxTimerStart;
 
 int[0, maxLives] lives = maxLives;
 int[1, 16] level = 1; // at level 16, timer is 0, so instant loss
 int points = 0;
 
-bool is_free_home_bay(int col) {
+void increase_points(int amount) {
+    if (points &lt; 32000) { // avoid overflow
+        points += amount;
+    }
+}
+
+int[0,4] bay_idx(int[0, MATRIX_COLS] col) {
     if (col % 2 != 0) col = col - 1;
-    return not home_bays_occupied[col/4];
+    return col/4;
+}
+
+bool is_free_home_bay(int[0,MATRIX_COLS] col) {
+    return not home_bays_occupied[bay_idx(col)];
 }
 
 bool isWall(int[0, MAX_X] col) {
-    if (col % 2 != 0) col = col - 1;
     return ((col/2) % 2 == 1) || !is_free_home_bay(col);
 }
 
@@ -236,12 +251,6 @@ bool canMoveInto(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
         )
     );    
 }
-
-const int direction_none = 0;
-const int direction_up = 1;
-const int direction_down = 2;
-const int direction_left = 3;
-const int direction_right = 4;
 
 /**
 * Attempts to move in the specified direction.
@@ -270,7 +279,7 @@ void move(int[0, 4] direction) {
         }
 
         if (canMoveInto(row, col)) {
-            if (direction == direction_up) points = points+1;
+            if (direction == direction_up) increase_points(move_up_points);
             frogger_y = row;
             frogger_x = col;
         }
@@ -305,20 +314,13 @@ void win_level() {
     for (i : int[0, 4]) {
         home_bays_occupied[i] = false;
     }
-    level = level+1;
-    points = points + 100;
+    if(level &lt; 16) level = level+1; // at level 16 maxTimer is 0, no point in checking
+    increase_points(win_level_points);
 }
 
 void occupy_home_bay() {
-    int[0, MAX_X] x = frogger_x;
-    int[0, 4] home_bay_idx;
-    if (x % 2 == 1) {
-        x = x-1;
-    }
-    home_bay_idx = x/4;
-
-    home_bays_occupied[home_bay_idx] = true;
-    points = points+5;
+    home_bays_occupied[bay_idx(frogger_x)] = true;
+    increase_points(occupy_home_bay_points);
     
     if (did_win()) {
         win_level();
@@ -348,10 +350,6 @@ void check_death() {
             frogger_died = false;
         }
     }
-}
-
-bool bay_available() {
-    return frogger_y == MAX_Y &amp;&amp; is_free_home_bay(frogger_x);
 }
 
 void interact() {
@@ -930,31 +928,31 @@ This is true by construction in our model, we still check that offsets stay with
 		<query>
 			<formula>E&lt;&gt; frogger_y == 12 &amp;&amp; (frogger_x == 0 || frogger_x == 1)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-10 21:56:31 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-10 23:51:24 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; home_bays_occupied[2] &amp;&amp; frogger_y == 12 &amp;&amp; (frogger_x == 8 || frogger_x == 9)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-10 21:56:31 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-10 23:51:24 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger_y == 6</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-10 21:56:31 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-10 23:51:24 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; global_clock == 10*time_unit_to_s &amp;&amp; frogger.lives == 5 &amp;&amp; on_log</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-10 21:56:33 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-10 23:51:27 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger_died_by_turtle</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-10 21:56:34 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-10 23:51:27 +0200">
 			</result>
 		</query>
 		<query>
