@@ -97,6 +97,10 @@ bool is_water(int row) {
     return row &gt;= 7 &amp;&amp; row &lt;= 11;
 }
 
+bool is_street(int row) {
+    return row &gt;= 1 &amp;&amp; row &lt;= 5;
+}
+
 int[-1, MATRIX_COLS] frogger_x = 9;
 int[-1, MAX_Y+1] frogger_y = 0;
 bool frogger_died = false;
@@ -110,20 +114,378 @@ urgent chan game_over;
 
 </declaration>
 	<template>
-		<name>Game</name>
-		<location id="id0" x="0" y="0">
-		</location>
-		<location id="id1" x="-238" y="0">
+		<name>World2</name>
+		<declaration>clock t;
+
+//const int emerged2diving = 10;
+//const int diving2submerged = 5;
+//const int submerged2emerging = 10;
+//const int emerging2emerged = 5;
+
+// total time in which frogger can stand on a diving turtle group
+const int tAboveSurface = 20;
+// total time in which the turtle group is under water
+const int tUnderSurface = 10;
+const int MAX_TICKS = 20;
+
+int[0,MAX_TICKS] ticks;
+
+void update_offset() {
+    int[0, MAX_SPEED] row_speed = 0;
+    ticks += 1;
+    ticks = ticks % MAX_TICKS;
+
+    // check turtles state
+    if (ticks == tAboveSurface &amp;&amp; are_diving_turtles_up) {
+        are_diving_turtles_up = false;
+    } else if(ticks == tUnderSurface &amp;&amp; !are_diving_turtles_up) {
+        are_diving_turtles_up = true;
+    }
+
+    // update rows
+    for (rownr : int[0,MAX_Y]) {
+        row_speed = speeds[rownr];
+
+        if (row_speed != 0 &amp;&amp; ticks % row_speed == 0) {
+            offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
+
+            // check frogger death
+            if (frogger_y == rownr) {
+                int[-1, 4] cell = getCell(frogger_y, frogger_x);
+                if (is_water(rownr)) {
+                     // subtract because directions are not inverted here, while in the directions array they are
+                    int[0, MATRIX_COLS] new_x = (MATRIX_COLS + frogger_x - directions[rownr]) % MATRIX_COLS;
+                    if (cell == C_LOG) {
+                        frogger_x = new_x;
+                        on_log = true;
+                    } else if (cell == C_TURTLE) {
+                        frogger_x = new_x;
+                    } else if (cell == C_DIVING) {
+                        if (are_diving_turtles_up) {
+                            frogger_x = new_x;
+                        } else {
+                            frogger_died = true;
+                            frogger_died_by_turtle = true;
+                        }
+                    } else {
+                        frogger_died = true;
+                    }
+                } else if (is_street(rownr)) {
+                    if (cell == C_OBJ) {
+                        frogger_died = true;
+                    }
+                }
+            }
+        }
+    }
+
+}</declaration>
+		<location id="id0" x="-25" y="-102">
+			<name x="-50" y="-144">Moving</name>
+			<label kind="invariant" x="-50" y="-85">t &lt;= 1</label>
 		</location>
 		<init ref="id0"/>
-		<transition id="id2">
-			<source ref="id0"/>
-			<target ref="id1"/>
-			<label kind="synchronisation" x="-161" y="-34">game_over?</label>
-		</transition>
-		<transition id="id3">
+		<transition id="id1">
 			<source ref="id0"/>
 			<target ref="id0"/>
+			<label kind="guard" x="-220" y="-212">t == 1</label>
+			<label kind="assignment" x="-220" y="-17">update_offset(),
+t = 0</label>
+			<nail x="-203" y="-187"/>
+			<nail x="-203" y="-17"/>
+		</transition>
+	</template>
+	<template>
+		<name>Frogger2</name>
+		<declaration>clock t;
+clock timer;
+
+const int maxTimerStart = 30 * time_unit_to_s;
+const int maxLives = 5;
+const int start_x = 9;
+const int start_y = 0;
+
+const int move_up_points = 1;
+const int occupy_home_bay_points = 5;
+const int win_level_points = 100;
+
+int[0, maxTimerStart] maxTimer = maxTimerStart;
+
+int[0, maxLives] lives = maxLives;
+int[1, 16] level = 1; // at level 16, timer is 0, so instant loss
+int points = 0;
+
+bool is_free_home_bay(int col) {
+    if (col % 2 != 0) col = col - 1;
+    return not home_bays_occupied[col/4];
+}
+
+bool isWall(int[0, MAX_X] col) {
+    if (col % 2 != 0) col = col - 1;
+    return ((col/2) % 2 == 1) || !is_free_home_bay(col);
+}
+
+/**
+* Checks if movement in the specified cell is valid.
+*
+* @param: int - row: the destination's y coordinate
+* @param: int - col: the destination's x coordinate
+*
+* @returns true if frogger can move into the cell, false otherwise.
+*          Note that a movement that kills frogger is still a valid movement
+*/
+bool canMoveInto(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
+    // movement is valid if:
+    // - between map boundaries AND
+    //     - the row is not the last OR
+    //     - the cell is not a wall or a occupied home bay 
+    return (
+        (row &gt;= 0 &amp;&amp; row &lt;= MAX_Y &amp;&amp; col &gt;= 0 &amp;&amp; col &lt;= MAX_X) &amp;&amp; 
+        (
+            row != MAX_Y || 
+            !isWall(col)
+        )
+    );    
+}
+
+const int direction_none = 0;
+const int direction_up = 1;
+const int direction_down = 2;
+const int direction_left = 3;
+const int direction_right = 4;
+
+/**
+* Attempts to move in the specified direction.
+* Note that this function does not check safety of frogger,
+* so if a movement kills him, it will still happen.
+*
+* @param: int - direction: the desired direction:
+*               -  0 means stay still
+*               -  1 means up
+*               -  2 means down
+*               -  3 means left
+*               -  4 means right
+*/
+void move(int[0, 4] direction) {
+    if (direction != direction_none) {
+        int [-1, MAX_Y+1] row = frogger_y;
+        int [-1, MATRIX_COLS] col = frogger_x;
+        if (direction == direction_up) {
+            row = row+1;
+        } else if (direction == direction_down) {
+            row = row-1;
+        } else if (direction == direction_left) {
+            col = col-1;
+        } else { // right
+            col = col+1;
+        }
+
+        if (canMoveInto(row, col)) {
+            if (direction == direction_up) points = points+1;
+            frogger_y = row;
+            frogger_x = col;
+        }
+    }
+}
+
+void respawn(){
+    // reset position    
+    frogger_x = start_x;
+    frogger_y = start_y;
+    // reset death status
+    frogger_died = false;
+    frogger_died_by_turtle = false;
+    on_log = false;
+    // reset timer
+    maxTimer = maxTimerStart - (2 * (level - 1)); // respaw in case of lvl win or death
+}
+
+void occupy_home_bay() {
+    int[0, MAX_X] x = frogger_x;
+    int[0, 4] home_bay_idx;
+    if (x % 2 == 1) {
+        x = x-1;
+    }
+    home_bay_idx = x/4;
+
+    home_bays_occupied[home_bay_idx] = true;
+    points = points+5;
+}
+
+bool did_win() {
+    for (i: int[0,4]) {
+        if (!home_bays_occupied[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+* Resets the world after winning (i.e. occupying all five home bays)
+*/
+void win_level() {
+    for (i : int[0, 4]) {
+        home_bays_occupied[i] = false;
+    }
+    level = level+1;
+    points = points + 100;
+}
+
+void die() {
+    lives = lives - 1;
+}
+
+/**
+* Checks if the current position occupied by frogger kills him.
+*/
+void check_death() {
+    if (timer == maxTimer) {
+        frogger_died = true;
+    } else {
+        if (frogger_y != 0 &amp;&amp; frogger_y != 6) { // always safe in those two
+            int[-1, 4] curr_cell = 0;
+            curr_cell = getCell(frogger_y, frogger_x);
+            if (frogger_y &gt; 6 &amp;&amp; frogger_y &lt; 12) {
+                frogger_died = curr_cell == C_EMPTY || curr_cell == C_WARP || (curr_cell == C_DIVING &amp;&amp; !are_diving_turtles_up);
+            } else {
+                frogger_died = curr_cell == C_OBJ;
+            }
+        } else {
+            frogger_died = false;
+        }
+    }
+}
+
+bool bay_available() {
+    return frogger_y == MAX_Y &amp;&amp; is_free_home_bay(frogger_x);
+}
+</declaration>
+		<location id="id2" x="-535" y="-144">
+			<name x="-578" y="-127">Reset</name>
+		</location>
+		<location id="id3" x="-8" y="-144">
+			<name x="-25" y="-127">Idle</name>
+			<label kind="invariant" x="-255" y="-170">t &lt;= 1 &amp;&amp; timer &lt;= maxTimer</label>
+		</location>
+		<location id="id4" x="255" y="-340">
+			<name x="280" y="-348">CanMove</name>
+			<urgent/>
+		</location>
+		<location id="id5" x="501" y="110">
+			<name x="509" y="119">Died</name>
+			<urgent/>
+		</location>
+		<location id="id6" x="-8" y="-340">
+			<name x="-68" y="-365">Moved</name>
+			<urgent/>
+		</location>
+		<location id="id7" x="-416" y="119">
+			<name x="-426" y="128">GameOver</name>
+		</location>
+		<location id="id8" x="-535" y="-340">
+			<name x="-569" y="-374">ReachedBay</name>
+			<urgent/>
+		</location>
+		<init ref="id2"/>
+		<transition id="id9">
+			<source ref="id8"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-714" y="-297">!did_win()</label>
+			<label kind="assignment" x="-714" y="-255">occupy_home_bay(),
+respawn(),
+t = 0,
+timer = 0</label>
+			<nail x="-722" y="-340"/>
+			<nail x="-722" y="-144"/>
+		</transition>
+		<transition id="id10">
+			<source ref="id8"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-527" y="-306">did_win()</label>
+			<label kind="assignment" x="-527" y="-263">win_level(),
+respawn(),
+t = 0,
+timer = 0</label>
+		</transition>
+		<transition id="id11">
+			<source ref="id6"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-374" y="-365">frogger_y == MAX_Y</label>
+		</transition>
+		<transition id="id12">
+			<source ref="id3"/>
+			<target ref="id5"/>
+			<label kind="guard" x="510" y="-153">timer == maxTimer</label>
+			<label kind="assignment" x="510" y="-127">frogger_died = true,
+die()</label>
+			<nail x="501" y="-153"/>
+		</transition>
+		<transition id="id13">
+			<source ref="id5"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-289" y="-59">lives &gt; 0</label>
+			<label kind="assignment" x="-187" y="-42">respawn(),
+timer = 0,
+t = 0</label>
+		</transition>
+		<transition id="id14">
+			<source ref="id5"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-170" y="119">lives == 0</label>
+		</transition>
+		<transition id="id15">
+			<source ref="id6"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-170" y="-306">frogger_y &lt; MAX_Y</label>
+			<label kind="assignment" x="-59" y="-280">t = 0</label>
+		</transition>
+		<transition id="id16">
+			<source ref="id4"/>
+			<target ref="id6"/>
+			<label kind="assignment" x="25" y="-408">move(direction_none)</label>
+			<nail x="255" y="-408"/>
+			<nail x="-8" y="-408"/>
+		</transition>
+		<transition id="id17">
+			<source ref="id4"/>
+			<target ref="id6"/>
+			<label kind="assignment" x="25" y="-340">move(direction_up)</label>
+		</transition>
+		<transition id="id18">
+			<source ref="id3"/>
+			<target ref="id5"/>
+			<label kind="guard" x="204" y="-59">t == 1 &amp;&amp; frogger_died</label>
+			<label kind="assignment" x="297" y="-17">die()</label>
+		</transition>
+		<transition id="id19">
+			<source ref="id3"/>
+			<target ref="id4"/>
+			<label kind="guard" x="85" y="-212">t == 1 &amp;&amp; !frogger_died</label>
+			<label kind="assignment" x="127" y="-246">t = 0</label>
+		</transition>
+		<transition id="id20">
+			<source ref="id2"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-501" y="-161">t == 2 * time_unit_to_s</label>
+			<label kind="assignment" x="-408" y="-144">t = 0</label>
+		</transition>
+	</template>
+	<template>
+		<name>Game</name>
+		<location id="id21" x="0" y="0">
+		</location>
+		<location id="id22" x="-238" y="0">
+		</location>
+		<init ref="id21"/>
+		<transition id="id23">
+			<source ref="id21"/>
+			<target ref="id22"/>
+			<label kind="synchronisation" x="-161" y="-34">game_over?</label>
+		</transition>
+		<transition id="id24">
+			<source ref="id21"/>
+			<target ref="id21"/>
 			<nail x="-51" y="-102"/>
 			<nail x="51" y="-102"/>
 		</transition>
@@ -294,34 +656,34 @@ bool bay_available() {
     return frogger_y == MAX_Y &amp;&amp; is_free_home_bay(frogger_x);
 }
 </declaration>
-		<location id="id4" x="-33" y="8">
+		<location id="id25" x="-33" y="8">
 			<name x="-59" y="-25">Reset</name>
 			<label kind="invariant" x="-119" y="-51">t &lt;= 2*time_unit_to_s</label>
 		</location>
-		<location id="id5" x="-535" y="221">
+		<location id="id26" x="-535" y="221">
 			<name x="-586" y="187">Died</name>
 			<label kind="invariant" x="-554" y="237">frogger_died</label>
 			<urgent/>
 		</location>
-		<location id="id6" x="442" y="17">
+		<location id="id27" x="442" y="17">
 			<name x="459" y="-25">Playing</name>
 			<label kind="invariant" x="460" y="-8">t &lt;= 1 &amp;&amp; !frogger_died</label>
 		</location>
-		<location id="id7" x="-535" y="374">
+		<location id="id28" x="-535" y="374">
 			<name x="-545" y="340">gameOver</name>
 		</location>
-		<location id="id8" x="433" y="383">
+		<location id="id29" x="433" y="383">
 			<name x="424" y="400">Moved</name>
 			<urgent/>
 		</location>
-		<location id="id9" x="-34" y="195">
+		<location id="id30" x="-34" y="195">
 			<name x="-93" y="212">Occupying</name>
 			<urgent/>
 		</location>
-		<init ref="id4"/>
-		<transition id="id10">
-			<source ref="id9"/>
-			<target ref="id4"/>
+		<init ref="id25"/>
+		<transition id="id31">
+			<source ref="id30"/>
+			<target ref="id25"/>
 			<label kind="guard" x="-238" y="59">did_win()</label>
 			<label kind="assignment" x="-255" y="110">timer = 0,
 t = 0,
@@ -329,23 +691,23 @@ win_level()</label>
 			<nail x="-153" y="187"/>
 			<nail x="-154" y="51"/>
 		</transition>
-		<transition id="id11">
-			<source ref="id8"/>
-			<target ref="id9"/>
+		<transition id="id32">
+			<source ref="id29"/>
+			<target ref="id30"/>
 			<label kind="guard" x="34" y="204">!frogger_died &amp;&amp; bay_available()</label>
 			<label kind="assignment" x="136" y="246">occupy_home_bay()</label>
 		</transition>
-		<transition id="id12">
-			<source ref="id9"/>
-			<target ref="id4"/>
+		<transition id="id33">
+			<source ref="id30"/>
+			<target ref="id25"/>
 			<label kind="guard" x="-25" y="59">!did_win()</label>
 			<label kind="assignment" x="-25" y="110">timer = 0,
 t = 0,
 respawn()</label>
 		</transition>
-		<transition id="id13">
-			<source ref="id6"/>
-			<target ref="id8"/>
+		<transition id="id34">
+			<source ref="id27"/>
+			<target ref="id29"/>
 			<label kind="guard" x="663" y="17">t == 1</label>
 			<label kind="assignment" x="663" y="128">t = 0,
 move(direction_none),
@@ -353,44 +715,44 @@ check_death()</label>
 			<nail x="654" y="17"/>
 			<nail x="654" y="187"/>
 		</transition>
-		<transition id="id14">
-			<source ref="id8"/>
-			<target ref="id7"/>
+		<transition id="id35">
+			<source ref="id29"/>
+			<target ref="id28"/>
 			<label kind="guard" x="-459" y="357">frogger_died &amp;&amp; lives == 1</label>
 			<label kind="assignment" x="-459" y="374">die(),
 frogger_y = 0</label>
 		</transition>
-		<transition id="id15">
-			<source ref="id8"/>
-			<target ref="id6"/>
+		<transition id="id36">
+			<source ref="id29"/>
+			<target ref="id27"/>
 			<label kind="guard" x="119" y="43">!frogger_died &amp;&amp; frogger_y &lt; MAX_Y</label>
 			<nail x="374" y="145"/>
 		</transition>
-		<transition id="id16">
-			<source ref="id6"/>
-			<target ref="id8"/>
+		<transition id="id37">
+			<source ref="id27"/>
+			<target ref="id29"/>
 			<label kind="guard" x="450" y="51">t == 1</label>
 			<label kind="assignment" x="450" y="77">t = 0,
 move(direction_up),
 check_death()</label>
 		</transition>
-		<transition id="id17">
-			<source ref="id8"/>
-			<target ref="id5"/>
+		<transition id="id38">
+			<source ref="id29"/>
+			<target ref="id26"/>
 			<label kind="guard" x="-408" y="221">frogger_died &amp;&amp; lives &gt; 1</label>
 			<label kind="assignment" x="-289" y="238">die()</label>
 		</transition>
-		<transition id="id18">
-			<source ref="id5"/>
-			<target ref="id4"/>
+		<transition id="id39">
+			<source ref="id26"/>
+			<target ref="id25"/>
 			<label kind="assignment" x="-331" y="-51">timer = 0,
 t = 0,
 respawn()</label>
 			<nail x="-425" y="17"/>
 		</transition>
-		<transition id="id19">
-			<source ref="id4"/>
-			<target ref="id6"/>
+		<transition id="id40">
+			<source ref="id25"/>
+			<target ref="id27"/>
 			<label kind="guard" x="25" y="-17">t == 2 * time_unit_to_s</label>
 			<label kind="assignment" x="102" y="8">t = 0</label>
 		</transition>
@@ -421,26 +783,26 @@ void emerge() {
 
 
 </declaration>
-		<location id="id20" x="-34" y="0">
+		<location id="id41" x="-34" y="0">
 			<name x="-51" y="-34">AboveSurface</name>
 			<label kind="invariant" x="-42" y="17">t &lt;= tAboveSurface</label>
 		</location>
-		<location id="id21" x="-331" y="-8">
+		<location id="id42" x="-331" y="-8">
 			<name x="-399" y="-42">Submerged</name>
 			<label kind="invariant" x="-476" y="8">t &lt;= tUnderSurface</label>
 		</location>
-		<init ref="id20"/>
-		<transition id="id22">
-			<source ref="id21"/>
-			<target ref="id20"/>
+		<init ref="id41"/>
+		<transition id="id43">
+			<source ref="id42"/>
+			<target ref="id41"/>
 			<label kind="guard" x="-365" y="68">t == tUnderSurface</label>
 			<label kind="assignment" x="-153" y="76">emerge(),
 t = 0</label>
 			<nail x="-178" y="85"/>
 		</transition>
-		<transition id="id23">
-			<source ref="id20"/>
-			<target ref="id21"/>
+		<transition id="id44">
+			<source ref="id41"/>
+			<target ref="id42"/>
 			<label kind="guard" x="-153" y="-93">t == tAboveSurface</label>
 			<label kind="assignment" x="-306" y="-102">submerge(),
 t = 0</label>
@@ -501,14 +863,14 @@ void update_offset() {
     }
     ticks = ticks % MAX_TICKS;
 }</declaration>
-		<location id="id24" x="0" y="0">
+		<location id="id45" x="0" y="0">
 			<name x="-25" y="-42">Moving</name>
 			<label kind="invariant" x="-25" y="17">t &lt;= 1</label>
 		</location>
-		<init ref="id24"/>
-		<transition id="id25">
-			<source ref="id24"/>
-			<target ref="id24"/>
+		<init ref="id45"/>
+		<transition id="id46">
+			<source ref="id45"/>
+			<target ref="id45"/>
 			<label kind="guard" x="-195" y="-110">t == 1</label>
 			<label kind="assignment" x="-195" y="85">update_offset(),
 t = 0</label>
@@ -518,11 +880,11 @@ t = 0</label>
 	</template>
 	<system>// Place template instantiations here.
 
-world  = World();
+world  = World2();
 
 diving_turtles = DivingTurtleGroups();
 
-frogger = Frogger();
+frogger = Frogger2();
 
 system frogger, world;</system>
 	<queries>
