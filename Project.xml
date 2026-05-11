@@ -75,7 +75,7 @@ bool are_diving_turtles_up = true;
 * -  1 means there is an object on it (depending on the row, a vehicle, a floating object or a wall)
 * -  2 means the cell is a whithin a diving turtle group
 */
-int[-1,4] getCell(int row, int col) {
+int[-1,4] get_cell(int row, int col) {
     int[-1,1] dir = directions[row];
     int[-MATRIX_COLS, MATRIX_COLS] offset = offsets[row] * dir;
     int[0, MATRIX_COLS] cur_col = (MATRIX_COLS + col + offset) % MATRIX_COLS;
@@ -92,15 +92,33 @@ int[-1,4] getCell(int row, int col) {
 * -  true if the row represents a lane on the river
 * -  false if the row represents a lane of ground
 */
-bool is_water(int row) {
+bool is_water(int[0, MAX_Y] row) {
     return row &gt;= 7 &amp;&amp; row &lt;= 11;
 }
 
-bool is_street(int row) {
+/**
+* Predicate returning the type of row
+*
+* @param: int - the row number
+*
+* @returns:
+* -  true if the row represents a lane on the street
+* -  false otherwise
+*/
+bool is_street(int[0, MAX_Y] row) {
     return row &gt;= 1 &amp;&amp; row &lt;= 5;
 }
 
-bool did_row_move(int[0, MAX_Y] row) {
+/**
+* Predicate returning whether a row moved this time unit
+*
+* @param: int - the row number
+*
+* @returns:
+* -  true if the given row moved this exact time unit
+* -  false otherwise
+*/
+bool is_row_moving(int[0, MAX_Y] row) {
     return speeds[row] != 0 &amp;&amp; ticks % speeds[row] == 0;
 }
 
@@ -114,41 +132,39 @@ broadcast chan world_ticked;
 		<name>World</name>
 		<declaration>clock t;
 
-//const int emerged2diving = 10;
-//const int diving2submerged = 5;
-//const int submerged2emerging = 10;
-//const int emerging2emerged = 5;
+const int t_above_surface = 10 + 5 + 5; // emerged + emerging + submerging
+const int t_under_surface = 10;         // submerged
 
-// total time in which frogger can stand on a diving turtle group
-const int tAboveSurface = 20;
-// total time in which the turtle group is under water
-const int tUnderSurface = 10;
-int[0, tAboveSurface + tUnderSurface] turtle_ticks;
+int[0, t_above_surface + t_under_surface] turtle_ticks;
 
-void update_offsets() {
-    int[0, MAX_SPEED] row_speed = 0;
+/**
+* Updates the world status, increasing the row's offsets and changing the
+* diving turtles' status
+*/
+void update_world() {
+    int[0, MAX_SPEED] row_speed;
+
     ticks += 1;
     turtle_ticks += 1;
 
     // check turtles state
-    if (turtle_ticks == tAboveSurface &amp;&amp; are_diving_turtles_up) {
+    if (turtle_ticks == t_above_surface &amp;&amp; are_diving_turtles_up) {
         are_diving_turtles_up = false;
-    } else if(turtle_ticks == tUnderSurface &amp;&amp; !are_diving_turtles_up) {
+    } else if(turtle_ticks == t_under_surface &amp;&amp; !are_diving_turtles_up) {
         are_diving_turtles_up = true;
     }
 
     // update rows
     for (rownr : int[0,MAX_Y]) {
         row_speed = speeds[rownr];
-
-        if (did_row_move(rownr)) {
+        if (is_row_moving(rownr)) { // tick is multiple of the current row's speed
             offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;        
         }
     }
 
-    // we need ticks to reach 20, so we perform modulo to consider the last possible value
+    // we need ticks to reach 20, so we perform modulo here to consider the last possible value
     ticks = ticks % MAX_TICKS;
-    turtle_ticks = ticks % (tAboveSurface + tUnderSurface);
+    turtle_ticks = ticks % (t_above_surface + t_under_surface);
 }</declaration>
 		<location id="id0" x="246" y="-102">
 			<name x="170" y="-127">Moving</name>
@@ -160,7 +176,7 @@ void update_offsets() {
 			<target ref="id0"/>
 			<label kind="guard" x="365" y="-195">t == 1</label>
 			<label kind="synchronisation" x="365" y="-178">world_ticked!</label>
-			<label kind="assignment" x="365" y="-161">update_offsets(),
+			<label kind="assignment" x="365" y="-161">update_world(),
 t = 0</label>
 			<nail x="246" y="-195"/>
 			<nail x="357" y="-195"/>
@@ -179,44 +195,77 @@ bool died_by_submerging = false;
 // bays can be accessed only if they are free. We keep track of the already occupied bays like this
 bool home_bays_occupied[5] = {false, false, false, false, false};
 
-const int maxTimerStart = 30 * time_unit_to_s;
+// timer to complete a level
+const int maxTimerStart = 30 * time_unit_to_s; 
+int[0, maxTimerStart] maxTimer = maxTimerStart;
+
+int[1, 16] level = 1; // at level 16, timer is 0, so instant loss
+
+// lives
 const int maxLives = 5;
+int[0, maxLives] lives = maxLives;
+
 const int start_x = 9;
 const int start_y = 0;
 
+// points
 const int move_up_points = 1;
 const int occupy_home_bay_points = 5;
 const int win_level_points = 100;
+int points = 0;
 
+// movement
 const int direction_none = 0;
 const int direction_up = 1;
 const int direction_down = 2;
 const int direction_left = 3;
 const int direction_right = 4;
+int[-1, 4] on_cell;
 
-int[0, maxTimerStart] maxTimer = maxTimerStart;
-
-int[0, maxLives] lives = maxLives;
-int[1, 16] level = 1; // at level 16, timer is 0, so instant loss
-int points = 0;
-
-int[-1, 4] on_cell = C_EMPTY;
-
+/**
+* Increases the amount of points of the specified amount,
+* if that does not cause an overflow
+*
+* @param: int - amount: the amount of points gained
+*/
 void increase_points(int amount) {
     if (points &lt; 32000) { // avoid overflow
         points += amount;
     }
 }
 
+/** 
+* Computes the bay index given a certain column in the grid
+*
+* @param: int[0, MATRIX_COLS] - col: the column in the grid
+*
+* @returns the index of the bay with with we can access home_bays_occupied
+*/
 int[0,4] bay_idx(int[0, MATRIX_COLS] col) {
     if (col % 2 != 0) col = col - 1;
     return col/4;
 }
 
+/**
+* Predicate checking whether the home bay in the given column is free.
+* This function does not perform any check on the row number, just on the column
+*
+* @param: int[0, MATRIX_COLS] - col: the column in the grid to be checked
+*
+* @returns true if the given column corresponds to a free home bay
+*/
 bool is_free_home_bay(int[0,MATRIX_COLS] col) {
     return not home_bays_occupied[bay_idx(col)];
 }
 
+/**
+* Predicate checking whether the given column represents a wall in the last row or an already
+* occupied home bay. This function does not perform any check on the row number, just on the column.
+*
+* @param: int[0, MATRIX_COLS] - col: the column in the grid to be checked
+*
+* @returns true if the given column corresponds to a wall
+*/
 bool isWall(int[0, MAX_X] col) {
     return ((col/2) % 2 == 1) || !is_free_home_bay(col);
 }
@@ -224,8 +273,8 @@ bool isWall(int[0, MAX_X] col) {
 /**
 * Checks if movement in the specified cell is valid.
 *
-* @param: int - row: the destination's y coordinate
-* @param: int - col: the destination's x coordinate
+* @param: int[-1, MAX_Y+1] - row: the destination's y coordinate
+* @param: int[-1, MATRIX_COLS] - col: the destination's x coordinate
 *
 * @returns true if frogger can move into the cell, false otherwise.
 *          Note that a movement that kills frogger is still a valid movement
@@ -249,7 +298,7 @@ bool canMoveInto(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
 * Note that this function does not check safety of frogger,
 * so if a movement kills him, it will still happen.
 *
-* @param: int - direction: the desired direction:
+* @param: int[0, 4] - direction: the desired direction:
 *               -  0 means stay still
 *               -  1 means up
 *               -  2 means down
@@ -274,16 +323,19 @@ void move(int[0, 4] direction) {
             if (direction == direction_up) increase_points(move_up_points);
             y = row;
             x = col;
-            on_cell = getCell(y, x);
+            on_cell = get_cell(y, x);
         }
     }
 }
 
+/**
+* Resets frogger position, death status and max timer to their default values
+*/
 void respawn(){
     // reset position    
     x = start_x;
     y = start_y;
-    on_cell = C_EMPTY;
+    on_cell = get_cell(y, x);
     // reset death status
     died = false;
     died_by_submerging = false;
@@ -291,6 +343,11 @@ void respawn(){
     maxTimer = maxTimerStart - (2 * (level - 1)); // respaw in case of lvl win or death
 }
 
+/**
+* Predicate checking whether frogger won the current level (i.e. it occupied all home bays).
+*
+* @returns true if all the home bays were occupied, false otherwise
+*/
 bool did_win() {
     for (i: int[0,4]) {
         if (!home_bays_occupied[i]) {
@@ -301,7 +358,9 @@ bool did_win() {
 }
 
 /**
-* Resets the world after winning (i.e. occupying all five home bays)
+* Resets the home bays and updates points and level after winning the current level
+*
+* @see frogger.did_win()
 */
 void win_level() {
     for (i : int[0, 4]) {
@@ -311,6 +370,12 @@ void win_level() {
     increase_points(win_level_points);
 }
 
+/**
+* Sets the home bay corresponding to the current column as occupied and updates the
+* points. If all home bays are occupied, also calls the win_level function
+*
+* @see frogger.win_level()
+*/
 void occupy_home_bay() {
     home_bays_occupied[bay_idx(x)] = true;
     increase_points(occupy_home_bay_points);
@@ -325,10 +390,16 @@ void die() {
 }
 
 /**
-* Checks if the current position occupied by frogger kills him.
+* Checks if the current position occupied by frogger kills him. This means:
+* - it is on the road and a vehicle occupies its same cell
+* - it is in the river and one of the following is true:
+*     - nothing else occupies that cell
+*     - a diving turtle occupies that cell and they are submerged
+*
+* If one of those conditions is true, the died variable is set to true.
 */
 void check_death() {
-    int[-1, 4] cell = getCell(y, x);
+    int[-1, 4] cell = get_cell(y, x);
     if (is_water(y)) {
          // subtract because directions are not inverted here, while in the directions array they are
         int[0, MATRIX_COLS] new_x = (MATRIX_COLS + x - directions[y]) % MATRIX_COLS;
@@ -342,14 +413,17 @@ void check_death() {
     }
 }
 
+/**
+* Updates frogger position if it is on a floating object that just moved
+*/
 void world_updated() {
-    int[-1, 4] cell = getCell(y, x);
+    int[-1, 4] cell = get_cell(y, x);
 
     if (is_water(y)) {
         // subtract because directions are not inverted here, while in the directions array they are
         int[0, MATRIX_COLS] new_x = (MATRIX_COLS + x - directions[y]) % MATRIX_COLS;
         if (cell == C_LOG || cell == C_TURTLE || (cell == C_DIVING &amp;&amp; are_diving_turtles_up)) {
-            if (did_row_move(y)) {
+            if (is_row_moving(y)) {
                 x = new_x;
             }
         }
@@ -358,7 +432,20 @@ void world_updated() {
     on_cell = cell;
 }
 
-void perform_turn(int direction) {
+/**
+* Performs the whole turn:
+* - updates frogger position after the world ticked
+* - checks if that killed it
+* - if not, moves in the specified direction
+* - checks if the movement killed it
+*
+* @param int[0,4] direction: the direction of the movement to perform
+*
+* @see frogger.world_updated()
+* @see frogger.check_death()
+* @see frogger.move()
+*/
+void perform_turn(int[0, 4] direction) {
     world_updated();
     check_death(); // Check if World killed us
 
@@ -374,28 +461,28 @@ void perform_turn(int direction) {
 			<name x="-6256" y="-221">Reset</name>
 			<label kind="invariant" x="-6451" y="-187">timer &lt;= 2 * time_unit_to_s</label>
 		</location>
-		<location id="id3" x="-5644" y="-187">
-			<name x="-5712" y="-221">Waiting</name>
-			<label kind="invariant" x="-5797" y="-179">timer &lt;= maxTimer</label>
+		<location id="id3" x="-5737" y="-187">
+			<name x="-5805" y="-221">Waiting</name>
+			<label kind="invariant" x="-5890" y="-179">timer &lt;= maxTimer</label>
 		</location>
-		<location id="id4" x="-5176" y="-187">
-			<name x="-5168" y="-212">PlayedTurn</name>
+		<location id="id4" x="-5269" y="-187">
+			<name x="-5261" y="-212">PlayedTurn</name>
 			<committed/>
 		</location>
-		<location id="id5" x="-5644" y="59">
-			<name x="-5628" y="34">Died</name>
+		<location id="id5" x="-5737" y="59">
+			<name x="-5721" y="34">Died</name>
 			<committed/>
 		</location>
-		<location id="id6" x="-5644" y="212">
-			<name x="-5635" y="187">GameOver</name>
+		<location id="id6" x="-5737" y="212">
+			<name x="-5728" y="187">GameOver</name>
 		</location>
 		<location id="id7" x="-6205" y="-416">
 			<name x="-6290" y="-450">Occupying</name>
 			<committed/>
 		</location>
-		<location id="id8" x="-5465" y="-187">
-			<name x="-5525" y="-179">CanPlay</name>
-			<label kind="invariant" x="-5474" y="-221">timer &lt;= maxTimer</label>
+		<location id="id8" x="-5558" y="-187">
+			<name x="-5618" y="-179">CanPlay</name>
+			<label kind="invariant" x="-5567" y="-221">timer &lt;= maxTimer</label>
 			<urgent/>
 		</location>
 		<init ref="id2"/>
@@ -409,39 +496,39 @@ void perform_turn(int direction) {
 		<transition id="id10">
 			<source ref="id8"/>
 			<target ref="id4"/>
-			<label kind="assignment" x="-5440" y="-127">perform_turn(direction_none)</label>
-			<nail x="-5431" y="-127"/>
-			<nail x="-5210" y="-127"/>
+			<label kind="assignment" x="-5533" y="-127">perform_turn(direction_none)</label>
+			<nail x="-5524" y="-127"/>
+			<nail x="-5303" y="-127"/>
 		</transition>
 		<transition id="id11">
 			<source ref="id8"/>
 			<target ref="id4"/>
-			<label kind="assignment" x="-5440" y="-187">perform_turn(direction_up)</label>
+			<label kind="assignment" x="-5533" y="-187">perform_turn(direction_up)</label>
 		</transition>
 		<transition id="id12">
 			<source ref="id3"/>
 			<target ref="id8"/>
-			<label kind="synchronisation" x="-5618" y="-212">world_ticked?</label>
+			<label kind="synchronisation" x="-5711" y="-212">world_ticked?</label>
 		</transition>
 		<transition id="id13">
 			<source ref="id4"/>
 			<target ref="id7"/>
-			<label kind="guard" x="-5822" y="-442">!died &amp;&amp; y == MAX_Y</label>
-			<label kind="assignment" x="-5814" y="-408">occupy_home_bay()</label>
-			<nail x="-5176" y="-416"/>
+			<label kind="guard" x="-6017" y="-442">!died &amp;&amp; y == MAX_Y</label>
+			<label kind="assignment" x="-6009" y="-408">occupy_home_bay()</label>
+			<nail x="-5269" y="-416"/>
 		</transition>
 		<transition id="id14">
 			<source ref="id4"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-5465" y="-306">!died &amp;&amp; y &lt; MAX_Y</label>
-			<nail x="-5176" y="-280"/>
-			<nail x="-5644" y="-280"/>
+			<label kind="guard" x="-5558" y="-306">!died &amp;&amp; y &lt; MAX_Y</label>
+			<nail x="-5269" y="-280"/>
+			<nail x="-5737" y="-280"/>
 		</transition>
 		<transition id="id15">
 			<source ref="id3"/>
 			<target ref="id5"/>
-			<label kind="guard" x="-5797" y="-51">timer &gt;= maxTimer</label>
-			<label kind="assignment" x="-5695" y="-25">die()</label>
+			<label kind="guard" x="-5890" y="-51">timer &gt;= maxTimer</label>
+			<label kind="assignment" x="-5788" y="-25">die()</label>
 		</transition>
 		<transition id="id16">
 			<source ref="id7"/>
@@ -461,19 +548,19 @@ respawn()</label>
 		<transition id="id18">
 			<source ref="id5"/>
 			<target ref="id6"/>
-			<label kind="guard" x="-5635" y="119">lives == 0</label>
+			<label kind="guard" x="-5728" y="119">lives == 0</label>
 		</transition>
 		<transition id="id19">
 			<source ref="id4"/>
 			<target ref="id5"/>
-			<label kind="guard" x="-5168" y="-42">died</label>
-			<label kind="assignment" x="-5168" y="-25">die()</label>
-			<nail x="-5176" y="59"/>
+			<label kind="guard" x="-5261" y="-42">died</label>
+			<label kind="assignment" x="-5261" y="-25">die()</label>
+			<nail x="-5269" y="59"/>
 		</transition>
 		<transition id="id20">
 			<source ref="id2"/>
 			<target ref="id3"/>
-			<label kind="guard" x="-6094" y="-212">timer == 2 * time_unit_to_s</label>
+			<label kind="guard" x="-6154" y="-212">timer == 2 * time_unit_to_s</label>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
@@ -511,32 +598,32 @@ This is true by construction in our model, we still check that offsets stay with
 		<query>
 			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:40 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:22 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:41 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:22 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:41 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:22 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:43 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:25 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.died_by_submerging</formula>
 			<comment>TO BE FIXED
 E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 12:17:50 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:25 +0200">
 			</result>
 		</query>
 		<query>
