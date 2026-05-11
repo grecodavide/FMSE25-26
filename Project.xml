@@ -63,7 +63,6 @@ int[0,MATRIX_COLS] offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 // Global status of the 2 diving turtle groups, it is shared because the have the same initial state and transition timers
 bool are_diving_turtles_up = true;
 
-
 /**
 * Returns the current cell occupying a given position.
 *
@@ -175,6 +174,7 @@ t = 0</label>
 int[-1, MATRIX_COLS] x = 9;
 int[-1, MAX_Y+1] y = 0;
 bool died = false;
+bool died_by_submerging = false;
 
 // bays can be accessed only if they are free. We keep track of the already occupied bays like this
 bool home_bays_occupied[5] = {false, false, false, false, false};
@@ -286,6 +286,7 @@ void respawn(){
     on_cell = C_EMPTY;
     // reset death status
     died = false;
+    died_by_submerging = false;
     // reset timer
     maxTimer = maxTimerStart - (2 * (level - 1)); // respaw in case of lvl win or death
 }
@@ -360,6 +361,10 @@ void world_updated() {
 void perform_turn(int direction) {
     world_updated();
     check_death(); // Check if World killed us
+
+    if (died &amp;&amp; on_cell == C_DIVING) {
+        died_by_submerging = true;
+    }
     if (!died) {
         move(direction);
         check_death(); // Check if our move killed us
@@ -528,9 +533,10 @@ This is true by construction in our model, we still check that offsets stay with
 			</result>
 		</query>
 		<query>
-			<formula>E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</formula>
-			<comment>TO BE FIXED</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:43 +0200">
+			<formula>E&lt;&gt; frogger.died_by_submerging</formula>
+			<comment>TO BE FIXED
+E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</comment>
+			<result outcome="success" type="quality" timestamp="2026-05-11 12:17:50 +0200">
 			</result>
 		</query>
 		<query>
