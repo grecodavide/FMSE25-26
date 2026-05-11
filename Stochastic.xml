@@ -61,7 +61,7 @@ const int[-1,4] rows[MAX_Y+1][MATRIX_COLS] = {
 // same row have the same speed, we can make the whole row move instead of the single objects.
 // This offset keeps track of this movement
 int[0,MATRIX_COLS] offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-int [0, MATRIX_COLS] trucks_offset[2] = {4, 15};
+int [0, MATRIX_COLS] trucks_cols[2] = {4, 15};
 
 // Global status of the 2 diving turtle groups, it is shared because the have the same initial state and transition timers
 bool are_diving_turtles_up = true;
@@ -87,8 +87,12 @@ int[-1,4] getCell(int row, int col) {
         return rows[row][cur_col];
     } else {
         for(i: int[0,1]) {
-            int[0, MATRIX_COLS] offset = trucks_offset[i];
+            int[0, MATRIX_COLS] truck_col = trucks_cols[i];
+            if (col == truck_col || (truck_col &lt; MAX_X &amp;&amp; col == truck_col + 1)) {
+                return C_OBJ;
+            }
         }
+        return C_EMPTY;
     }
 }
 
@@ -122,8 +126,9 @@ broadcast chan world_ticked;
 	<template>
 		<name>Truck</name>
 		<parameter>int truck_nr</parameter>
-		<declaration>void update_truck_offset() {
-    trucks_offset[truck_nr] = (trucks_offset[truck_nr] - 1) % MATRIX_COLS;
+		<declaration>// TODO: do we have to check for overlaps?
+void update_truck_offset() {
+    trucks_cols[truck_nr] = (MATRIX_COLS + trucks_cols[truck_nr] - 1) % MATRIX_COLS;
 }</declaration>
 		<location id="id0" x="-144" y="-59">
 			<name x="-154" y="-93">Waiting</name>
@@ -539,77 +544,17 @@ respawn()</label>
 
 world  = World();
 frogger = Frogger();
-truck1 = Truck(0, speeds[5]);
-truck2 = Truck(1, speeds[5]);
+truck1 = Truck(0);
+truck2 = Truck(1);
 
 system frogger, world, truck1, truck2;</system>
 	<queries>
 		<query>
-			<formula>A[] not deadlock</formula>
-			<comment>1.1) Without considering Frogger: the game never reaches a deadlock state.</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:31:48 +0200">
+			<formula>Pr[&lt;=1000] (&lt;&gt; frogger.level == 1 &amp;&amp; frogger.did_win() &amp;&amp; frogger.points &gt;= 200)</formula>
+			<comment>Probability that, running for 1000 time units, there exists along the path a configuration in which we are at level one, we won and we have at least 200 points</comment>
+			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-11 18:13:45 +0200">
+				<details>≤ 0.0499441 (95% CI)</details>
 			</result>
-		</query>
-		<query>
-			<formula>A[] (offsets[1] &gt;= 0 &amp;&amp; offsets[1] &lt; MATRIX_COLS &amp;&amp;
-     offsets[2] &gt;= 0 &amp;&amp; offsets[2] &lt; MATRIX_COLS &amp;&amp;
-     offsets[3] &gt;= 0 &amp;&amp; offsets[3] &lt; MATRIX_COLS &amp;&amp;
-     offsets[4] &gt;= 0 &amp;&amp; offsets[4] &lt; MATRIX_COLS &amp;&amp;
-     offsets[5] &gt;= 0 &amp;&amp; offsets[5] &lt; MATRIX_COLS &amp;&amp;
-     offsets[7] &gt;= 0 &amp;&amp; offsets[7] &lt; MATRIX_COLS &amp;&amp;
-     offsets[8] &gt;= 0 &amp;&amp; offsets[8] &lt; MATRIX_COLS &amp;&amp;
-     offsets[9] &gt;= 0 &amp;&amp; offsets[9] &lt; MATRIX_COLS &amp;&amp;
-     offsets[10] &gt;= 0 &amp;&amp; offsets[10] &lt; MATRIX_COLS &amp;&amp;
-     offsets[11] &gt;= 0 &amp;&amp; offsets[11] &lt; MATRIX_COLS)</formula>
-			<comment>1.2) Without considering Frogger: all vehicles and floating objects can only
-move inside their predefined row.
-
-This is true by construction in our model, we still check that offsets stay within (0, MATRIX_COLS)</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:31:48 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:40 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:41 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:41 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:43 +0200">
-			</result>
-		</query>
-		<query>
-			<formula>E&lt;&gt; frogger.died_by_submerging</formula>
-			<comment>TO BE FIXED
-E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 12:17:50 +0200">
-			</result>
-		</query>
-		<query>
-			<formula/>
-			<comment/>
-		</query>
-		<query>
-			<formula/>
-			<comment/>
-		</query>
-		<query>
-			<formula>frogger_y == 12 --&gt; (frogger_x != 2)</formula>
-			<comment>FOR US, NOT TO BE DELIVERED</comment>
 		</query>
 	</queries>
 </nta>
