@@ -271,6 +271,7 @@ void move(int[0, 4] direction) {
             if (direction == direction_up) increase_points(move_up_points);
             y = row;
             x = col;
+            on_cell = getCell(y, x);
         }
     }
 }
@@ -323,24 +324,6 @@ void die() {
 * Checks if the current position occupied by frogger kills him.
 */
 void check_death() {
-    if (timer == maxTimer) {
-        died = true;
-    } else {
-        if (y != 0 &amp;&amp; y != 6) { // always safe in those two
-            int[-1, 4] curr_cell = 0;
-            curr_cell = getCell(y, x);
-            if (y &gt; 6 &amp;&amp; y &lt; 12) {
-                died = curr_cell == C_EMPTY || curr_cell == C_WARP || (curr_cell == C_DIVING &amp;&amp; !are_diving_turtles_up);
-            } else {
-                died = curr_cell == C_OBJ;
-            }
-        } else {
-            died = false;
-        }
-    }
-}
-
-void interact() {
     int[-1, 4] cell = getCell(y, x);
     if (is_water(y)) {
          // subtract because directions are not inverted here, while in the directions array they are
@@ -354,15 +337,10 @@ void interact() {
         }
     }
     
-    if (!died) {
-        on_cell = cell;
-    }
 }
 
 void world_updated() {
     int[-1, 4] cell = getCell(y, x);
-
-    on_cell = cell;
 
     if (is_water(y)) {
         // subtract because directions are not inverted here, while in the directions array they are
@@ -371,14 +349,16 @@ void world_updated() {
             x = new_x;
         }
     }
+
+    on_cell = cell;
 }
 
 void perform_turn(int direction) {
     world_updated();
-    interact(); // Check if World killed us
+    check_death(); // Check if World killed us
     if (!died) {
         move(direction);
-        interact(); // Check if our move killed us
+        check_death(); // Check if our move killed us
     }
 }</declaration>
 		<location id="id2" x="-6205" y="-191">
@@ -517,29 +497,31 @@ This is true by construction in our model, we still check that offsets stay with
 		<query>
 			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:07:50 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:27 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:19:30 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:27 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:07:51 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:27 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
 			<comment/>
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:30 +0200">
+			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:08:06 +0200">
+			<comment>TO BE FIXED</comment>
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:30 +0200">
 			</result>
 		</query>
 		<query>
