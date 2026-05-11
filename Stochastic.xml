@@ -25,8 +25,9 @@ const int MATRIX_COLS = MAX_X+1+STEPS_WARP;    // number of columns in the world
 // Which is 2 cells BEFORE, not AFTER. The rows moves LTR, so to obtain the current cell
 // I need to consider a movement RTL, to find out the original cell
 const int[-1,1] directions[MAX_Y+1] = {0, 1, -1, 1, -1, 1, 0, 1, -1, -1, 1, -1, 0};
-const int[0, 10] speeds[MAX_Y+1] = {0, 3, 10, 5, 4, 7, 0, 6, 2, 7, 2, 2, 0};
-const int TRUCK_SPEED = speeds[5];
+const int[0, 10] speeds[MAX_Y+1] = {0, 3, 10, 5, 4, 0, 0, 6, 2, 7, 2, 2, 0};
+const int TRUCK_SPEED = 7;
+const int TRUCK_ROW = 5;
 const int MAX_SPEED = 10;
 const int MAX_TICKS = 420; // LCM of all the speeds
 int[0,MAX_TICKS] ticks;
@@ -60,7 +61,7 @@ const int[-1,4] rows[MAX_Y+1][MATRIX_COLS] = {
 // same row have the same speed, we can make the whole row move instead of the single objects.
 // This offset keeps track of this movement
 int[0,MATRIX_COLS] offsets[MAX_Y+1] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-int [0, MATRIX_COLS] trucks_offset[2] = {0, 0};
+int [0, MATRIX_COLS] trucks_offset[2] = {4, 15};
 
 // Global status of the 2 diving turtle groups, it is shared because the have the same initial state and transition timers
 bool are_diving_turtles_up = true;
@@ -78,11 +79,17 @@ bool are_diving_turtles_up = true;
 * -  2 means the cell is a whithin a diving turtle group
 */
 int[-1,4] getCell(int row, int col) {
-    int[-1,1] dir = directions[row];
-    int[-MATRIX_COLS, MATRIX_COLS] offset = offsets[row] * dir;
-    int[0, MATRIX_COLS] cur_col = (MATRIX_COLS + col + offset) % MATRIX_COLS;
+    if (row != TRUCK_ROW){
+        int[-1,1] dir = directions[row];
+        int[-MATRIX_COLS, MATRIX_COLS] offset = offsets[row] * dir;
+        int[0, MATRIX_COLS] cur_col = (MATRIX_COLS + col + offset) % MATRIX_COLS;
 
-    return rows[row][cur_col];
+        return rows[row][cur_col];
+    } else {
+        for(i: int[0,1]) {
+            int[0, MATRIX_COLS] offset = trucks_offset[i];
+        }
+    }
 }
 
 /**
@@ -116,7 +123,7 @@ broadcast chan world_ticked;
 		<name>Truck</name>
 		<parameter>int truck_nr</parameter>
 		<declaration>void update_truck_offset() {
-    trucks_offset[truck_nr] = (trucks_offset[truck_nr] + 1) % MATRIX_COLS;
+    trucks_offset[truck_nr] = (trucks_offset[truck_nr] - 1) % MATRIX_COLS;
 }</declaration>
 		<location id="id0" x="-144" y="-59">
 			<name x="-154" y="-93">Waiting</name>
