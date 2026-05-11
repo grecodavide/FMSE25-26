@@ -27,6 +27,8 @@ const int MATRIX_COLS = MAX_X+1+STEPS_WARP;    // number of columns in the world
 const int[-1,1] directions[MAX_Y+1] = {0, 1, -1, 1, -1, 1, 0, 1, -1, -1, 1, -1, 0};
 const int[0, 10] speeds[MAX_Y+1] = {0, 3, 10, 5, 4, 7, 0, 6, 2, 7, 2, 2, 0};
 const int MAX_SPEED = 10;
+const int MAX_TICKS = 420; // LCM of all the speeds
+int[0,MAX_TICKS] ticks;
 
 // state of the world
 const int C_WARP = -1;
@@ -99,6 +101,10 @@ bool is_street(int row) {
     return row &gt;= 1 &amp;&amp; row &lt;= 5;
 }
 
+bool did_row_move(int[0, MAX_Y] row) {
+    return speeds[row] != 0 &amp;&amp; ticks % speeds[row] == 0;
+}
+
 clock global_clock;
 
 // Channels
@@ -118,9 +124,6 @@ broadcast chan world_ticked;
 const int tAboveSurface = 20;
 // total time in which the turtle group is under water
 const int tUnderSurface = 10;
-const int MAX_TICKS = 420; // LCM of all the speeds
-
-int[0,MAX_TICKS] ticks;
 int[0, tAboveSurface + tUnderSurface] turtle_ticks;
 
 void update_offsets() {
@@ -139,7 +142,7 @@ void update_offsets() {
     for (rownr : int[0,MAX_Y]) {
         row_speed = speeds[rownr];
 
-        if (row_speed != 0 &amp;&amp; ticks % row_speed == 0) {
+        if (did_row_move(rownr)) {
             offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;        
         }
     }
@@ -336,7 +339,6 @@ void check_death() {
             died = true;
         }
     }
-    
 }
 
 void world_updated() {
@@ -346,7 +348,9 @@ void world_updated() {
         // subtract because directions are not inverted here, while in the directions array they are
         int[0, MATRIX_COLS] new_x = (MATRIX_COLS + x - directions[y]) % MATRIX_COLS;
         if (cell == C_LOG || cell == C_TURTLE || (cell == C_DIVING &amp;&amp; are_diving_turtles_up)) {
-            x = new_x;
+            if (did_row_move(y)) {
+                x = new_x;
+            }
         }
     }
 
@@ -362,7 +366,7 @@ void perform_turn(int direction) {
     }
 }</declaration>
 		<location id="id2" x="-6205" y="-191">
-			<name x="-6264" y="-212">Reset</name>
+			<name x="-6256" y="-221">Reset</name>
 			<label kind="invariant" x="-6451" y="-187">timer &lt;= 2 * time_unit_to_s</label>
 		</location>
 		<location id="id3" x="-5644" y="-187">
@@ -370,7 +374,7 @@ void perform_turn(int direction) {
 			<label kind="invariant" x="-5797" y="-179">timer &lt;= maxTimer</label>
 		</location>
 		<location id="id4" x="-5176" y="-187">
-			<name x="-5151" y="-212">PlayedTurn</name>
+			<name x="-5168" y="-212">PlayedTurn</name>
 			<committed/>
 		</location>
 		<location id="id5" x="-5644" y="59">
@@ -381,7 +385,7 @@ void perform_turn(int direction) {
 			<name x="-5635" y="187">GameOver</name>
 		</location>
 		<location id="id7" x="-6205" y="-416">
-			<name x="-6264" y="-450">Occupying</name>
+			<name x="-6290" y="-450">Occupying</name>
 			<committed/>
 		</location>
 		<location id="id8" x="-5465" y="-187">
@@ -472,11 +476,14 @@ respawn()</label>
 world  = World();
 frogger = Frogger();
 
-system frogger, world;</system>
+system frogger, world;
+// system world;</system>
 	<queries>
 		<query>
 			<formula>A[] not deadlock</formula>
 			<comment>1.1) Without considering Frogger: the game never reaches a deadlock state.</comment>
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:31:48 +0200">
+			</result>
 		</query>
 		<query>
 			<formula>A[] (offsets[1] &gt;= 0 &amp;&amp; offsets[1] &lt; MATRIX_COLS &amp;&amp;
@@ -493,35 +500,37 @@ system frogger, world;</system>
 move inside their predefined row.
 
 This is true by construction in our model, we still check that offsets stay within (0, MATRIX_COLS)</comment>
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:31:48 +0200">
+			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:27 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:40 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:27 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:41 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:27 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:41 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:30 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:43 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</formula>
 			<comment>TO BE FIXED</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:28:30 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-11 11:51:43 +0200">
 			</result>
 		</query>
 		<query>
