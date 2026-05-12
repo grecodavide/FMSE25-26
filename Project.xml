@@ -110,12 +110,12 @@ bool is_street(int[0, MAX_Y] row) {
 }
 
 /**
-* Predicate returning whether a row moved this time unit
+* Predicate returning whether a row is moving this time unit
 *
 * @param: int - the row number
 *
 * @returns:
-* -  true if the given row moved this exact time unit
+* -  true if the given row should move this exact time unit
 * -  false otherwise
 */
 bool is_row_moving(int[0, MAX_Y] row) {
@@ -187,11 +187,6 @@ t = 0</label>
 		<name>Frogger</name>
 		<declaration>clock timer;
 
-int[-1, MATRIX_COLS] x = 9;
-int[-1, MAX_Y+1] y = 0;
-bool died = false;
-bool died_by_submerging = false;
-
 // bays can be accessed only if they are free. We keep track of the already occupied bays like this
 bool home_bays_occupied[5] = {false, false, false, false, false};
 
@@ -205,8 +200,8 @@ int[1, 16] level = 1; // at level 16, timer is 0, so instant loss
 const int maxLives = 5;
 int[0, maxLives] lives = maxLives;
 
-const int start_x = 9;
-const int start_y = 0;
+bool died = false;
+bool died_by_submerging = false;
 
 // points
 const int move_up_points = 1;
@@ -215,12 +210,19 @@ const int win_level_points = 100;
 int points = 0;
 
 // movement
+const int start_x = 9;
+const int start_y = 0;
+int[-1, MATRIX_COLS] x = start_x;
+int[-1, MAX_Y+1] y = start_y;
+
+int[-1, 4] on_cell;
+
 const int direction_none = 0;
 const int direction_up = 1;
 const int direction_down = 2;
 const int direction_left = 3;
 const int direction_right = 4;
-int[-1, 4] on_cell;
+
 
 /**
 * Increases the amount of points of the specified amount,
@@ -385,6 +387,9 @@ void occupy_home_bay() {
     }
 }
 
+/**
+* Reduces frogger lives by one after a death
+*/
 void die() {
     lives = lives - 1;
 }
@@ -445,7 +450,7 @@ void world_updated() {
 * @see frogger.check_death()
 * @see frogger.move()
 */
-void perform_turn(int[0, 4] direction) {
+void play_turn(int[0, 4] direction) {
     world_updated();
     check_death(); // Check if World killed us
 
@@ -496,14 +501,14 @@ void perform_turn(int[0, 4] direction) {
 		<transition id="id10">
 			<source ref="id8"/>
 			<target ref="id4"/>
-			<label kind="assignment" x="-5533" y="-127">perform_turn(direction_none)</label>
+			<label kind="assignment" x="-5533" y="-127">play_turn(direction_none)</label>
 			<nail x="-5524" y="-127"/>
 			<nail x="-5303" y="-127"/>
 		</transition>
 		<transition id="id11">
 			<source ref="id8"/>
 			<target ref="id4"/>
-			<label kind="assignment" x="-5533" y="-187">perform_turn(direction_up)</label>
+			<label kind="assignment" x="-5533" y="-187">play_turn(direction_up)</label>
 		</transition>
 		<transition id="id12">
 			<source ref="id3"/>
@@ -598,32 +603,32 @@ This is true by construction in our model, we still check that offsets stay with
 		<query>
 			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:22 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:47 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:22 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:47 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:22 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:47 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:25 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:49 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.died_by_submerging</formula>
 			<comment>TO BE FIXED
 E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 19:04:25 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:49 +0200">
 			</result>
 		</query>
 		<query>
