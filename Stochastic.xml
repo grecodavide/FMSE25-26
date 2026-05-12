@@ -3,7 +3,7 @@
 <nta>
 	<declaration>// Place global declarations here.
 // --- CONSTANTS ---
-const int time_unit_to_s = 10;                 // 1 time unit = 0.1s 
+const int time_unit_to_s = 10;                 // 1 time unit = 0.1s
 const int TIME_LIMIT = 30 * time_unit_to_s;    // 30 seconds
 const int START_DELAY = 2 * time_unit_to_s;    // 2 seconds
 const int MAX_X = 17;                          // 18 columns (0 to 17)
@@ -205,7 +205,7 @@ void update_offsets() {
         row_speed = speeds[rownr];
 
         if (is_row_moving(rownr)) {
-            offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;        
+            offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
         }
     }
 
@@ -238,14 +238,14 @@ t = 0</label>
 bool home_bays_occupied[5] = {false, false, false, false, false};
 
 // timer to complete a level
-const int maxTimerStart = 30 * time_unit_to_s; 
-int[0, maxTimerStart] maxTimer = maxTimerStart;
+const int max_timer_start = 30 * time_unit_to_s;
+int[0, max_timer_start] max_timer = max_timer_start;
 
 int[1, 16] level = 1; // at level 16, timer is 0, so instant loss
 
 // lives
-const int maxLives = 5;
-int[0, maxLives] lives = maxLives;
+const int MAX_LIVES = 5;
+int[0, MAX_LIVES] lives = MAX_LIVES;
 
 bool died = false;
 bool died_by_submerging = false;
@@ -287,7 +287,7 @@ void increase_points(int amount) {
     }
 }
 
-/** 
+/**
 * Computes the bay index given a certain column in the grid
 *
 * @param: int[0, MATRIX_COLS] - col: the column in the grid
@@ -319,7 +319,7 @@ bool is_free_home_bay(int[0,MATRIX_COLS] col) {
 *
 * @returns true if the given column corresponds to a wall
 */
-bool isWall(int[0, MAX_X] col) {
+bool is_wall(int[0, MAX_X] col) {
     return ((col/2) % 2 == 1) || !is_free_home_bay(col);
 }
 
@@ -332,18 +332,18 @@ bool isWall(int[0, MAX_X] col) {
 * @returns true if frogger can move into the cell, false otherwise.
 *          Note that a movement that kills frogger is still a valid movement
 */
-bool canMoveInto(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
+bool can_move_into(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
     // movement is valid if:
     // - between map boundaries AND
     //     - the row is not the last OR
-    //     - the cell is not a wall or a occupied home bay 
+    //     - the cell is not a wall or a occupied home bay
     return (
-        (row &gt;= 0 &amp;&amp; row &lt;= MAX_Y &amp;&amp; col &gt;= 0 &amp;&amp; col &lt;= MAX_X) &amp;&amp; 
+        (row &gt;= 0 &amp;&amp; row &lt;= MAX_Y &amp;&amp; col &gt;= 0 &amp;&amp; col &lt;= MAX_X) &amp;&amp;
         (
-            row != MAX_Y || 
-            !isWall(col)
+            row != MAX_Y ||
+            !is_wall(col)
         )
-    );    
+    );
 }
 
 /**
@@ -372,7 +372,7 @@ void move(int[0, 4] direction) {
             col = col+1;
         }
 
-        if (canMoveInto(row, col)) {
+        if (can_move_into(row, col)) {
             if (direction == direction_up) increase_points(move_up_points);
             y = row;
             x = col;
@@ -385,7 +385,7 @@ void move(int[0, 4] direction) {
 * Resets frogger position, death status and max timer to their default values
 */
 void respawn(){
-    // reset position    
+    // reset position
     x = start_x;
     y = start_y;
     on_cell = C_EMPTY;
@@ -393,7 +393,7 @@ void respawn(){
     died = false;
     died_by_submerging = false;
     // reset timer
-    maxTimer = maxTimerStart - (2 * (level - 1)); // respaw in case of lvl win or death
+    max_timer = max_timer_start - (2 * (level - 1)); // respaw in case of lvl win or death
 }
 
 /**
@@ -419,7 +419,7 @@ void win_level() {
     for (i : int[0, 4]) {
         home_bays_occupied[i] = false;
     }
-    if(level &lt; 16) level = level+1; // at level 16 maxTimer is 0, no point in checking
+    if(level &lt; 16) level = level+1; // at level 16 max_timer is 0, no point in checking
     increase_points(win_level_points);
 }
 
@@ -432,7 +432,7 @@ void win_level() {
 void occupy_home_bay() {
     home_bays_occupied[bay_idx(x)] = true;
     increase_points(occupy_home_bay_points);
-    
+
     if (did_win()) {
         win_level();
     }
@@ -519,7 +519,7 @@ void play_turn(int direction) {
 		</location>
 		<location id="id7" x="-5797" y="-187">
 			<name x="-5865" y="-221">Waiting</name>
-			<label kind="invariant" x="-5950" y="-179">timer &lt;= maxTimer</label>
+			<label kind="invariant" x="-5950" y="-179">timer &lt;= max_timer</label>
 		</location>
 		<location id="id8" x="-5176" y="-187">
 			<name x="-5168" y="-212">PlayedTurn</name>
@@ -538,7 +538,7 @@ void play_turn(int direction) {
 		</location>
 		<location id="id12" x="-5584" y="-187">
 			<name x="-5594" y="-221">CanPlay</name>
-			<label kind="invariant" x="-5644" y="-170">timer &lt;= maxTimer</label>
+			<label kind="invariant" x="-5644" y="-170">timer &lt;= max_timer</label>
 		</location>
 		<branchpoint id="id13" x="-5457" y="-187"/>
 		<init ref="id6"/>
@@ -600,7 +600,7 @@ void play_turn(int direction) {
 		<transition id="id22">
 			<source ref="id7"/>
 			<target ref="id9"/>
-			<label kind="guard" x="-5950" y="-51">timer &gt;= maxTimer</label>
+			<label kind="guard" x="-5950" y="-51">timer &gt;= max_timer</label>
 			<label kind="assignment" x="-5848" y="-25">die()</label>
 		</transition>
 		<transition id="id23">
@@ -632,7 +632,7 @@ respawn()</label>
 		<transition id="id27">
 			<source ref="id6"/>
 			<target ref="id7"/>
-			<label kind="guard" x="-6094" y="-212">timer == 2 * time_unit_to_s</label>
+			<label kind="guard" x="-6162" y="-212">timer == 2 * time_unit_to_s</label>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
@@ -647,7 +647,7 @@ system frogger, world, truck1, truck2;</system>
 		<query>
 			<formula>Pr[&lt;=1000] (&lt;&gt; frogger.level == 1 &amp;&amp; frogger.did_win() &amp;&amp; frogger.points &gt;= 200)</formula>
 			<comment>Probability that, running for 1000 time units, there exists along the path a configuration in which we are at level one, we won and we have at least 200 points</comment>
-			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-11 18:13:45 +0200">
+			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-12 09:00:53 +0200">
 				<details>≤ 0.0499441 (95% CI)</details>
 			</result>
 		</query>

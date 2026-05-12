@@ -3,7 +3,7 @@
 <nta>
 	<declaration>// Place global declarations here.
 // --- CONSTANTS ---
-const int time_unit_to_s = 10;                 // 1 time unit = 0.1s 
+const int time_unit_to_s = 10;                 // 1 time unit = 0.1s
 const int TIME_LIMIT = 30 * time_unit_to_s;    // 30 seconds
 const int START_DELAY = 2 * time_unit_to_s;    // 2 seconds
 const int MAX_X = 17;                          // 18 columns (0 to 17)
@@ -158,7 +158,7 @@ void update_world() {
     for (rownr : int[0,MAX_Y]) {
         row_speed = speeds[rownr];
         if (is_row_moving(rownr)) { // tick is multiple of the current row's speed
-            offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;        
+            offsets[rownr] = (offsets[rownr] + 1) % MATRIX_COLS;
         }
     }
 
@@ -191,14 +191,14 @@ t = 0</label>
 bool home_bays_occupied[5] = {false, false, false, false, false};
 
 // timer to complete a level
-const int maxTimerStart = 30 * time_unit_to_s; 
-int[0, maxTimerStart] maxTimer = maxTimerStart;
+const int max_timer_start = 30 * time_unit_to_s;
+int[0, max_timer_start] max_timer = max_timer_start;
 
 int[1, 16] level = 1; // at level 16, timer is 0, so instant loss
 
 // lives
-const int maxLives = 5;
-int[0, maxLives] lives = maxLives;
+const int MAX_LIVES = 5;
+int[0, MAX_LIVES] lives = MAX_LIVES;
 
 bool died = false;
 bool died_by_submerging = false;
@@ -236,7 +236,7 @@ void increase_points(int amount) {
     }
 }
 
-/** 
+/**
 * Computes the bay index given a certain column in the grid
 *
 * @param: int[0, MATRIX_COLS] - col: the column in the grid
@@ -268,7 +268,7 @@ bool is_free_home_bay(int[0,MATRIX_COLS] col) {
 *
 * @returns true if the given column corresponds to a wall
 */
-bool isWall(int[0, MAX_X] col) {
+bool is_wall(int[0, MAX_X] col) {
     return ((col/2) % 2 == 1) || !is_free_home_bay(col);
 }
 
@@ -281,18 +281,18 @@ bool isWall(int[0, MAX_X] col) {
 * @returns true if frogger can move into the cell, false otherwise.
 *          Note that a movement that kills frogger is still a valid movement
 */
-bool canMoveInto(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
+bool can_move_into(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
     // movement is valid if:
     // - between map boundaries AND
     //     - the row is not the last OR
-    //     - the cell is not a wall or a occupied home bay 
+    //     - the cell is not a wall or a occupied home bay
     return (
-        (row &gt;= 0 &amp;&amp; row &lt;= MAX_Y &amp;&amp; col &gt;= 0 &amp;&amp; col &lt;= MAX_X) &amp;&amp; 
+        (row &gt;= 0 &amp;&amp; row &lt;= MAX_Y &amp;&amp; col &gt;= 0 &amp;&amp; col &lt;= MAX_X) &amp;&amp;
         (
-            row != MAX_Y || 
-            !isWall(col)
+            row != MAX_Y ||
+            !is_wall(col)
         )
-    );    
+    );
 }
 
 /**
@@ -321,7 +321,7 @@ void move(int[0, 4] direction) {
             col = col+1;
         }
 
-        if (canMoveInto(row, col)) {
+        if (can_move_into(row, col)) {
             if (direction == direction_up) increase_points(move_up_points);
             y = row;
             x = col;
@@ -334,7 +334,7 @@ void move(int[0, 4] direction) {
 * Resets frogger position, death status and max timer to their default values
 */
 void respawn(){
-    // reset position    
+    // reset position
     x = start_x;
     y = start_y;
     on_cell = get_cell(y, x);
@@ -342,7 +342,7 @@ void respawn(){
     died = false;
     died_by_submerging = false;
     // reset timer
-    maxTimer = maxTimerStart - (2 * (level - 1)); // respaw in case of lvl win or death
+    max_timer = max_timer_start - (2 * (level - 1)); // respaw in case of lvl win or death
 }
 
 /**
@@ -368,7 +368,7 @@ void win_level() {
     for (i : int[0, 4]) {
         home_bays_occupied[i] = false;
     }
-    if(level &lt; 16) level = level+1; // at level 16 maxTimer is 0, no point in checking
+    if(level &lt; 16) level = level+1; // at level 16 max_timer is 0, no point in checking
     increase_points(win_level_points);
 }
 
@@ -381,7 +381,7 @@ void win_level() {
 void occupy_home_bay() {
     home_bays_occupied[bay_idx(x)] = true;
     increase_points(occupy_home_bay_points);
-    
+
     if (did_win()) {
         win_level();
     }
@@ -468,7 +468,7 @@ void play_turn(int[0, 4] direction) {
 		</location>
 		<location id="id3" x="-5737" y="-187">
 			<name x="-5805" y="-221">Waiting</name>
-			<label kind="invariant" x="-5890" y="-179">timer &lt;= maxTimer</label>
+			<label kind="invariant" x="-5890" y="-179">timer &lt;= max_timer</label>
 		</location>
 		<location id="id4" x="-5269" y="-187">
 			<name x="-5261" y="-212">PlayedTurn</name>
@@ -487,7 +487,7 @@ void play_turn(int[0, 4] direction) {
 		</location>
 		<location id="id8" x="-5558" y="-187">
 			<name x="-5618" y="-179">CanPlay</name>
-			<label kind="invariant" x="-5567" y="-221">timer &lt;= maxTimer</label>
+			<label kind="invariant" x="-5567" y="-221">timer &lt;= max_timer</label>
 			<urgent/>
 		</location>
 		<init ref="id2"/>
@@ -532,7 +532,7 @@ void play_turn(int[0, 4] direction) {
 		<transition id="id15">
 			<source ref="id3"/>
 			<target ref="id5"/>
-			<label kind="guard" x="-5890" y="-51">timer &gt;= maxTimer</label>
+			<label kind="guard" x="-5890" y="-51">timer &gt;= max_timer</label>
 			<label kind="assignment" x="-5788" y="-25">die()</label>
 		</transition>
 		<transition id="id16">
@@ -603,32 +603,32 @@ This is true by construction in our model, we still check that offsets stay with
 		<query>
 			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:47 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:28 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:47 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:28 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:47 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:28 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:49 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:30 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.died_by_submerging</formula>
 			<comment>TO BE FIXED
 E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-12 08:52:49 +0200">
+			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:30 +0200">
 			</result>
 		</query>
 		<query>
