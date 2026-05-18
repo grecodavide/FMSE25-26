@@ -234,6 +234,7 @@ t = 0</label>
 	</template>
 	<template>
 		<name>Frogger</name>
+		<parameter>bool dynamic_policy</parameter>
 		<declaration>clock timer;
 
 // bays can be accessed only if they are free. We keep track of the already occupied bays like this
@@ -272,10 +273,11 @@ const int direction_down = 2;
 const int direction_left = 3;
 const int direction_right = 4;
 
-const int weight_up = 5;
-const int weight_down = 1;
-const int weight_left = 2;
-const int weight_right = 2;
+int[0, 10] weight_none = 0;
+int[0, 10] weight_up = 5;
+int[0, 10] weight_down = 1;
+int[0, 10] weight_left = 2;
+int[0, 10] weight_right = 2;
 
 /**
 * Increases the amount of points of the specified amount,
@@ -490,6 +492,55 @@ void world_updated() {
     on_cell = cell;
 }
 
+void assign_weights(int[0,10] up, int[0,10] down, int[0,10] left, int[0,10] right, int[0,10] none) {
+    weight_up = up;
+    weight_down = down;
+    weight_left = left;
+    weight_right = right;
+    weight_none = none;
+}
+
+void update_weights() {
+    int[-1, 4] next_cell;
+    int[-1, 4] cell = get_cell(y+1, x);   
+    int[-1,1] next_row_direction = directions[y+1];
+    if (next_row_direction == 0) {
+        assign_weights(10, 0, 0, 0, 0);
+    } else { 
+        if (next_row_direction == 1) {
+            next_cell = get_cell(y+1, x-1);
+        } else {
+            next_cell = get_cell(y+1, x+1);
+        }
+
+        if (is_street(y+1)) {
+            if (cell == C_EMPTY &amp;&amp; next_cell == C_EMPTY) {
+                assign_weights(10, 0, 0, 0, 0);
+            } else {
+                // handle street waiting behavior
+            }
+        } else if (is_water(y+1)) {
+            if (cell != C_EMPTY &amp;&amp; next_cell != C_EMPTY) { // maybe avoid diving turtles
+                assign_weights(10, 0, 0, 0, 0);
+            } else {
+                // handle water waiting behavior
+            }
+        }
+    }
+}
+
+void pre_move() {
+    world_updated();
+    check_death(); // Check if World killed us
+
+    if (died &amp;&amp; on_cell == C_DIVING) {
+        died_by_submerging = true;
+    }
+    if (!died &amp;&amp; dynamic_policy) {
+        update_weights();
+    }
+}
+
 /**
 * Performs the whole turn:
 * - updates frogger position after the world ticked
@@ -504,12 +555,6 @@ void world_updated() {
 * @see frogger.move()
 */
 void play_turn(int direction) {
-    world_updated();
-    check_death(); // Check if World killed us
-
-    if (died &amp;&amp; on_cell == C_DIVING) {
-        died_by_submerging = true;
-    }
     if (!died) {
         move(direction);
         check_death(); // Check if our move killed us
@@ -523,8 +568,8 @@ void play_turn(int direction) {
 			<name x="-5865" y="-221">Waiting</name>
 			<label kind="invariant" x="-5950" y="-179">timer &lt;= max_timer</label>
 		</location>
-		<location id="id8" x="-5176" y="-187">
-			<name x="-5168" y="-212">PlayedTurn</name>
+		<location id="id8" x="-5057" y="-187">
+			<name x="-5049" y="-212">PlayedTurn</name>
 			<committed/>
 		</location>
 		<location id="id9" x="-5797" y="59">
@@ -540,78 +585,92 @@ void play_turn(int direction) {
 		</location>
 		<location id="id12" x="-5584" y="-187">
 			<name x="-5594" y="-221">CanPlay</name>
-			<label kind="invariant" x="-5644" y="-170">timer &lt;= max_timer</label>
+			<label kind="invariant" x="-5720" y="-178">timer &lt;= max_timer</label>
 		</location>
-		<branchpoint id="id13" x="-5457" y="-187"/>
+		<location id="id13" x="-5423" y="-187">
+			<committed/>
+		</location>
+		<branchpoint id="id14" x="-5372" y="-187"/>
 		<init ref="id6"/>
-		<transition id="id14">
+		<transition id="id15">
+			<source ref="id12"/>
+			<target ref="id13"/>
+			<label kind="assignment" x="-5550" y="-187">pre_move()</label>
+		</transition>
+		<transition id="id16" controllable="false">
+			<source ref="id13"/>
+			<target ref="id14"/>
+		</transition>
+		<transition id="id17">
+			<source ref="id14"/>
+			<target ref="id8"/>
+			<label kind="assignment" x="-5346" y="-204">play_turn(direction_none)</label>
+			<label kind="probability" x="-5346" y="-187">weight_none</label>
+		</transition>
+		<transition id="id18">
 			<source ref="id7"/>
 			<target ref="id12"/>
 			<label kind="synchronisation" x="-5763" y="-212">world_ticked?</label>
 		</transition>
-		<transition id="id15">
-			<source ref="id13"/>
+		<transition id="id19">
+			<source ref="id14"/>
 			<target ref="id8"/>
-			<label kind="assignment" x="-5423" y="-76">play_turn(direction_right)</label>
-			<label kind="probability" x="-5414" y="-51">weight_right</label>
-			<nail x="-5431" y="-51"/>
-			<nail x="-5193" y="-51"/>
-		</transition>
-		<transition id="id16">
-			<source ref="id13"/>
-			<target ref="id8"/>
-			<label kind="assignment" x="-5414" y="-136">play_turn(direction_left)</label>
-			<label kind="probability" x="-5414" y="-110">weight_left</label>
-			<nail x="-5423" y="-110"/>
-			<nail x="-5193" y="-110"/>
-		</transition>
-		<transition id="id17">
-			<source ref="id13"/>
-			<target ref="id8"/>
-			<label kind="assignment" x="-5423" y="-272">play_turn(direction_down)</label>
-			<label kind="probability" x="-5423" y="-246">weight_down</label>
-			<nail x="-5440" y="-246"/>
-			<nail x="-5202" y="-246"/>
-		</transition>
-		<transition id="id18">
-			<source ref="id13"/>
-			<target ref="id8"/>
-			<label kind="assignment" x="-5423" y="-340">play_turn(direction_up)</label>
-			<label kind="probability" x="-5423" y="-314">weight_up</label>
-			<nail x="-5431" y="-314"/>
-			<nail x="-5210" y="-314"/>
-		</transition>
-		<transition id="id19" controllable="false">
-			<source ref="id12"/>
-			<target ref="id13"/>
+			<label kind="assignment" x="-5338" y="-76">play_turn(direction_right)</label>
+			<label kind="probability" x="-5329" y="-51">weight_right</label>
+			<nail x="-5346" y="-51"/>
+			<nail x="-5074" y="-51"/>
 		</transition>
 		<transition id="id20">
+			<source ref="id14"/>
+			<target ref="id8"/>
+			<label kind="assignment" x="-5329" y="-136">play_turn(direction_left)</label>
+			<label kind="probability" x="-5329" y="-110">weight_left</label>
+			<nail x="-5338" y="-110"/>
+			<nail x="-5074" y="-110"/>
+		</transition>
+		<transition id="id21">
+			<source ref="id14"/>
+			<target ref="id8"/>
+			<label kind="assignment" x="-5338" y="-272">play_turn(direction_down)</label>
+			<label kind="probability" x="-5338" y="-246">weight_down</label>
+			<nail x="-5355" y="-246"/>
+			<nail x="-5083" y="-246"/>
+		</transition>
+		<transition id="id22">
+			<source ref="id14"/>
+			<target ref="id8"/>
+			<label kind="assignment" x="-5338" y="-340">play_turn(direction_up)</label>
+			<label kind="probability" x="-5338" y="-314">weight_up</label>
+			<nail x="-5346" y="-314"/>
+			<nail x="-5091" y="-314"/>
+		</transition>
+		<transition id="id23">
 			<source ref="id8"/>
 			<target ref="id11"/>
 			<label kind="guard" x="-5822" y="-510">!died &amp;&amp; y == MAX_Y</label>
 			<label kind="assignment" x="-5814" y="-476">occupy_home_bay()</label>
-			<nail x="-5176" y="-484"/>
+			<nail x="-5057" y="-484"/>
 		</transition>
-		<transition id="id21">
+		<transition id="id24">
 			<source ref="id8"/>
 			<target ref="id7"/>
 			<label kind="guard" x="-5771" y="-433">!died &amp;&amp; y &lt; MAX_Y</label>
-			<nail x="-5176" y="-408"/>
+			<nail x="-5057" y="-408"/>
 			<nail x="-5797" y="-408"/>
 		</transition>
-		<transition id="id22">
+		<transition id="id25">
 			<source ref="id7"/>
 			<target ref="id9"/>
 			<label kind="guard" x="-5950" y="-51">timer &gt;= max_timer</label>
 			<label kind="assignment" x="-5848" y="-25">die()</label>
 		</transition>
-		<transition id="id23">
+		<transition id="id26">
 			<source ref="id11"/>
 			<target ref="id6"/>
 			<label kind="assignment" x="-6196" y="-331">timer = 0,
 respawn()</label>
 		</transition>
-		<transition id="id24">
+		<transition id="id27">
 			<source ref="id9"/>
 			<target ref="id6"/>
 			<label kind="guard" x="-6163" y="30">lives &gt; 0</label>
@@ -619,19 +678,19 @@ respawn()</label>
 respawn()</label>
 			<nail x="-6205" y="55"/>
 		</transition>
-		<transition id="id25">
+		<transition id="id28">
 			<source ref="id9"/>
 			<target ref="id10"/>
 			<label kind="guard" x="-5788" y="119">lives == 0</label>
 		</transition>
-		<transition id="id26">
+		<transition id="id29">
 			<source ref="id8"/>
 			<target ref="id9"/>
-			<label kind="guard" x="-5168" y="-42">died</label>
-			<label kind="assignment" x="-5168" y="-25">die()</label>
-			<nail x="-5176" y="59"/>
+			<label kind="guard" x="-5049" y="-42">died</label>
+			<label kind="assignment" x="-5049" y="-25">die()</label>
+			<nail x="-5057" y="59"/>
 		</transition>
-		<transition id="id27">
+		<transition id="id30">
 			<source ref="id6"/>
 			<target ref="id7"/>
 			<label kind="guard" x="-6162" y="-212">timer == 2 * time_unit_to_s</label>
@@ -640,16 +699,30 @@ respawn()</label>
 	<system>// Place template instantiations here.
 
 world  = World();
-frogger = Frogger();
 truck1 = Truck(0);
 truck2 = Truck(1);
+
+// frogger = Frogger(false);
+frogger = Frogger(true);
+
 
 system frogger, world, truck1, truck2;</system>
 	<queries>
 		<query>
 			<formula>Pr[&lt;=1000] (&lt;&gt; frogger.level == 1 &amp;&amp; frogger.did_win() &amp;&amp; frogger.points &gt;= 200)</formula>
 			<comment>Probability that, running for 1000 time units, there exists along the path a configuration in which we are at level one, we won and we have at least 200 points</comment>
-			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-12 09:00:53 +0200">
+			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-18 12:52:21 +0200">
+				<details>≤ 0.0499441 (95% CI)</details>
+			</result>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>Pr[&lt;=20000] ([] frogger.lives == 5)</formula>
+			<comment/>
+			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-18 12:54:08 +0200">
 				<details>≤ 0.0499441 (95% CI)</details>
 			</result>
 		</query>
