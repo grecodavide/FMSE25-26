@@ -3,3 +3,5 @@
 /flake.lock
 /flake.nix
 /nix
+/.nix-dev-env-cache.zsh
+/report/preamble.pdf
