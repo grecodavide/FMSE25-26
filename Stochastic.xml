@@ -42,6 +42,22 @@ const int C_LOG = 2;
 const int C_TURTLE = 3;
 const int C_DIVING = 4;
 
+// const int[-1,4] rows[MAX_Y+1][MATRIX_COLS] = {
+//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
+//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
+//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
+//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
+//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
+//     {0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, -1, -1},
+//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
+//     {0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 0, 0, 0, 4, 4, 4, 4, 4, -1, -1},
+//     {0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, -1, -1},
+//     {0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, -1, -1},
+//     {0, 3, 3, 3, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, -1, -1},
+//     {0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, -1, -1},
+//     {0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, -1, -1}
+// };
+
 const int[-1,4] rows[MAX_Y+1][MATRIX_COLS] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
     {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, -1},
@@ -273,11 +289,7 @@ const int direction_down = 2;
 const int direction_left = 3;
 const int direction_right = 4;
 
-int[0, 10] weight_none = 0;
-int[0, 10] weight_up = 5;
-int[0, 10] weight_down = 1;
-int[0, 10] weight_left = 2;
-int[0, 10] weight_right = 2;
+int[0, 10] weights[5] = {0, 5, 1, 2, 2};
 
 /**
 * Increases the amount of points of the specified amount,
@@ -385,20 +397,6 @@ void move(int[0, 4] direction) {
     }
 }
 
-/**
-* Resets frogger position, death status and max timer to their default values
-*/
-void respawn(){
-    // reset position
-    x = start_x;
-    y = start_y;
-    on_cell = C_EMPTY;
-    // reset death status
-    died = false;
-    died_by_submerging = false;
-    // reset timer
-    max_timer = max_timer_start - (2 * (level - 1)); // respaw in case of lvl win or death
-}
 
 /**
 * Predicate checking whether frogger won the current level (i.e. it occupied all home bays).
@@ -415,14 +413,32 @@ bool did_win() {
 }
 
 /**
+* Resets frogger position, death status and max timer to their default values
+*/
+void respawn(){  
+    if (did_win()) {
+        for (i : int[0, 4]) {
+            home_bays_occupied[i] = false;
+        }
+    }
+    // reset position
+    x = start_x;
+    y = start_y;
+    on_cell = C_EMPTY;
+    // reset death status
+    died = false;
+    died_by_submerging = false;
+    // reset timer
+    max_timer = max_timer_start - (2 * (level - 1)); // respaw in case of lvl win or death
+}
+
+
+/**
 * Resets the home bays and updates points and level after winning the current level
 *
 * @see frogger.did_win()
 */
 void win_level() {
-    for (i : int[0, 4]) {
-        home_bays_occupied[i] = false;
-    }
     if(level &lt; 16) level = level+1; // at level 16 max_timer is 0, no point in checking
     increase_points(win_level_points);
 }
@@ -436,7 +452,7 @@ void win_level() {
 void occupy_home_bay() {
     home_bays_occupied[bay_idx(x)] = true;
     increase_points(occupy_home_bay_points);
-
+    
     if (did_win()) {
         win_level();
     }
@@ -477,67 +493,87 @@ void check_death() {
 * Updates frogger position if it is on a floating object that just moved
 */
 void world_updated() {
-    int[-1, 4] cell = get_cell(y, x);
-
     if (is_water(y)) {
         // subtract because directions are not inverted here, while in the directions array they are
         int[0, MATRIX_COLS] new_x = (MATRIX_COLS + x - directions[y]) % MATRIX_COLS;
-        if (cell == C_LOG || cell == C_TURTLE || (cell == C_DIVING &amp;&amp; are_diving_turtles_up)) {
+        if (on_cell == C_LOG || on_cell == C_TURTLE || (on_cell == C_DIVING &amp;&amp; are_diving_turtles_up)) {
             if (is_row_moving(y)) {
                 x = new_x;
             }
         }
     }
 
-    on_cell = cell;
+    on_cell = get_cell(y, x);
 }
 
-void assign_weights(int[0,10] up, int[0,10] down, int[0,10] left, int[0,10] right, int[0,10] none) {
-    weight_up = up;
-    weight_down = down;
-    weight_left = left;
-    weight_right = right;
-    weight_none = none;
+void assign_weights(int[0,10] new_weights[5]) {
+    for (i: int[0, 4]) {
+        weights[i] = new_weights[i];
+    }
 }
 
 void update_weights() {
     int[-1, 4] next_cell;
-    int[-1, 4] cell = get_cell(y+1, x);   
-    int[-1,1] next_row_direction = directions[y+1];
-    if (next_row_direction == 0) {
-        assign_weights(10, 0, 0, 0, 0);
-    } else { 
-        if (next_row_direction == 1) {
-            next_cell = get_cell(y+1, x-1);
+    int[-1, 4] cell = get_cell(y+1, x);
+    int[0, 10] new_weights[5] = {0, 0, 0, 0, 0};
+    if (y &lt; MAX_Y) {
+        int[-1,1] next_row_direction = directions[y+1];
+        if (next_row_direction == 0) {
+            new_weights[direction_up] = 10;
         } else {
-            next_cell = get_cell(y+1, x+1);
-        }
+            if (next_row_direction == 1) {
+                next_cell = get_cell(y+1, x-1);
+            } else {
+                next_cell = get_cell(y+1, x+1);
+            }
 
-        if (is_street(y+1)) {
-            if (cell == C_EMPTY &amp;&amp; next_cell == C_EMPTY) {
-                assign_weights(10, 0, 0, 0, 0);
-            } else {
-                // handle street waiting behavior
-            }
-        } else if (is_water(y+1)) {
-            if (cell != C_EMPTY &amp;&amp; next_cell != C_EMPTY) { // maybe avoid diving turtles
-                assign_weights(10, 0, 0, 0, 0);
-            } else {
-                // handle water waiting behavior
+            if (is_street(y+1)) {
+                if (cell == C_EMPTY &amp;&amp; next_cell == C_EMPTY) {
+                    new_weights[direction_up] = 10;
+                } else { // handle street waiting behavior
+                    new_weights[direction_none] = 10;
+                }
+            } else if (is_water(y+1)) {
+                if (cell != C_EMPTY &amp;&amp; next_cell != C_EMPTY &amp;&amp; cell != C_DIVING &amp;&amp; next_cell != C_DIVING) { // maybe avoid diving turtles
+                    new_weights[direction_up] = 10;
+                } else { // handle water waiting behavior
+                    new_weights[direction_none] = 10;
+                }
             }
         }
+    } else {
+        new_weights[direction_up] = 10;
     }
+    
+    assign_weights(new_weights);
+}
+
+int[0, 4] direction = direction_none;
+
+int[0, 4] choose_direction() {
+    int[0, 10] r = fint(random(11));
+    for (i: int[0, 4]) {
+        if (weights[i] &gt; 0 &amp;&amp; r &lt;= weights[i]) {
+            return i;
+        }
+        r -= weights[i];
+    }
+    
+    return 0;
 }
 
 void pre_move() {
+    int[0, 10] x;
     world_updated();
     check_death(); // Check if World killed us
 
     if (died &amp;&amp; on_cell == C_DIVING) {
         died_by_submerging = true;
     }
+
     if (!died &amp;&amp; dynamic_policy) {
         update_weights();
+        direction = choose_direction();
     }
 }
 
@@ -554,7 +590,8 @@ void pre_move() {
 * @see frogger.check_death()
 * @see frogger.move()
 */
-void play_turn(int direction) {
+void play_turn() {
+    pre_move();
     if (!died) {
         move(direction);
         check_death(); // Check if our move killed us
@@ -562,14 +599,14 @@ void play_turn(int direction) {
 }</declaration>
 		<location id="id6" x="-6205" y="-191">
 			<name x="-6256" y="-221">Reset</name>
-			<label kind="invariant" x="-6451" y="-187">timer &lt;= 2 * time_unit_to_s</label>
+			<label kind="invariant" x="-6196" y="-178">timer &lt;= 2 * time_unit_to_s</label>
 		</location>
 		<location id="id7" x="-5797" y="-187">
 			<name x="-5865" y="-221">Waiting</name>
-			<label kind="invariant" x="-5950" y="-179">timer &lt;= max_timer</label>
+			<label kind="invariant" x="-5788" y="-178">timer &lt;= max_timer</label>
 		</location>
-		<location id="id8" x="-5057" y="-187">
-			<name x="-5049" y="-212">PlayedTurn</name>
+		<location id="id8" x="-5236" y="-187">
+			<name x="-5228" y="-212">PlayedTurn</name>
 			<committed/>
 		</location>
 		<location id="id9" x="-5797" y="59">
@@ -583,94 +620,40 @@ void play_turn(int direction) {
 			<name x="-6290" y="-518">Occupying</name>
 			<committed/>
 		</location>
-		<location id="id12" x="-5584" y="-187">
-			<name x="-5594" y="-221">CanPlay</name>
-			<label kind="invariant" x="-5720" y="-178">timer &lt;= max_timer</label>
-		</location>
-		<location id="id13" x="-5423" y="-187">
-			<committed/>
-		</location>
-		<branchpoint id="id14" x="-5372" y="-187"/>
 		<init ref="id6"/>
-		<transition id="id15">
-			<source ref="id12"/>
-			<target ref="id13"/>
-			<label kind="assignment" x="-5550" y="-187">pre_move()</label>
-		</transition>
-		<transition id="id16" controllable="false">
-			<source ref="id13"/>
-			<target ref="id14"/>
-		</transition>
-		<transition id="id17">
-			<source ref="id14"/>
-			<target ref="id8"/>
-			<label kind="assignment" x="-5346" y="-204">play_turn(direction_none)</label>
-			<label kind="probability" x="-5346" y="-187">weight_none</label>
-		</transition>
-		<transition id="id18">
+		<transition id="id12">
 			<source ref="id7"/>
-			<target ref="id12"/>
-			<label kind="synchronisation" x="-5763" y="-212">world_ticked?</label>
-		</transition>
-		<transition id="id19">
-			<source ref="id14"/>
 			<target ref="id8"/>
-			<label kind="assignment" x="-5338" y="-76">play_turn(direction_right)</label>
-			<label kind="probability" x="-5329" y="-51">weight_right</label>
-			<nail x="-5346" y="-51"/>
-			<nail x="-5074" y="-51"/>
+			<label kind="synchronisation" x="-5559" y="-212">world_ticked?</label>
+			<label kind="assignment" x="-5550" y="-178">play_turn()</label>
 		</transition>
-		<transition id="id20">
-			<source ref="id14"/>
-			<target ref="id8"/>
-			<label kind="assignment" x="-5329" y="-136">play_turn(direction_left)</label>
-			<label kind="probability" x="-5329" y="-110">weight_left</label>
-			<nail x="-5338" y="-110"/>
-			<nail x="-5074" y="-110"/>
-		</transition>
-		<transition id="id21">
-			<source ref="id14"/>
-			<target ref="id8"/>
-			<label kind="assignment" x="-5338" y="-272">play_turn(direction_down)</label>
-			<label kind="probability" x="-5338" y="-246">weight_down</label>
-			<nail x="-5355" y="-246"/>
-			<nail x="-5083" y="-246"/>
-		</transition>
-		<transition id="id22">
-			<source ref="id14"/>
-			<target ref="id8"/>
-			<label kind="assignment" x="-5338" y="-340">play_turn(direction_up)</label>
-			<label kind="probability" x="-5338" y="-314">weight_up</label>
-			<nail x="-5346" y="-314"/>
-			<nail x="-5091" y="-314"/>
-		</transition>
-		<transition id="id23">
+		<transition id="id13">
 			<source ref="id8"/>
 			<target ref="id11"/>
 			<label kind="guard" x="-5822" y="-510">!died &amp;&amp; y == MAX_Y</label>
 			<label kind="assignment" x="-5814" y="-476">occupy_home_bay()</label>
-			<nail x="-5057" y="-484"/>
+			<nail x="-5236" y="-484"/>
 		</transition>
-		<transition id="id24">
+		<transition id="id14">
 			<source ref="id8"/>
 			<target ref="id7"/>
 			<label kind="guard" x="-5771" y="-433">!died &amp;&amp; y &lt; MAX_Y</label>
-			<nail x="-5057" y="-408"/>
+			<nail x="-5236" y="-408"/>
 			<nail x="-5797" y="-408"/>
 		</transition>
-		<transition id="id25">
+		<transition id="id15">
 			<source ref="id7"/>
 			<target ref="id9"/>
 			<label kind="guard" x="-5950" y="-51">timer &gt;= max_timer</label>
 			<label kind="assignment" x="-5848" y="-25">die()</label>
 		</transition>
-		<transition id="id26">
+		<transition id="id16">
 			<source ref="id11"/>
 			<target ref="id6"/>
 			<label kind="assignment" x="-6196" y="-331">timer = 0,
 respawn()</label>
 		</transition>
-		<transition id="id27">
+		<transition id="id17">
 			<source ref="id9"/>
 			<target ref="id6"/>
 			<label kind="guard" x="-6163" y="30">lives &gt; 0</label>
@@ -678,19 +661,19 @@ respawn()</label>
 respawn()</label>
 			<nail x="-6205" y="55"/>
 		</transition>
-		<transition id="id28">
+		<transition id="id18">
 			<source ref="id9"/>
 			<target ref="id10"/>
 			<label kind="guard" x="-5788" y="119">lives == 0</label>
 		</transition>
-		<transition id="id29">
+		<transition id="id19">
 			<source ref="id8"/>
 			<target ref="id9"/>
-			<label kind="guard" x="-5049" y="-42">died</label>
-			<label kind="assignment" x="-5049" y="-25">die()</label>
-			<nail x="-5057" y="59"/>
+			<label kind="guard" x="-5228" y="-42">died</label>
+			<label kind="assignment" x="-5228" y="-25">die()</label>
+			<nail x="-5236" y="59"/>
 		</transition>
-		<transition id="id30">
+		<transition id="id20">
 			<source ref="id6"/>
 			<target ref="id7"/>
 			<label kind="guard" x="-6162" y="-212">timer == 2 * time_unit_to_s</label>
@@ -702,28 +685,121 @@ world  = World();
 truck1 = Truck(0);
 truck2 = Truck(1);
 
-// frogger = Frogger(false);
 frogger = Frogger(true);
+// frogger = Frogger(false);
 
 
 system frogger, world, truck1, truck2;</system>
 	<queries>
+		<option key="--epsilon" value="0.02"/>
 		<query>
-			<formula>Pr[&lt;=1000] (&lt;&gt; frogger.level == 1 &amp;&amp; frogger.did_win() &amp;&amp; frogger.points &gt;= 200)</formula>
+			<formula>Pr[&lt;=1000;1000] (&lt;&gt; (frogger.level == 2 &amp;&amp; frogger.did_win() &amp;&amp; frogger.points &gt;= 200))</formula>
 			<comment>Probability that, running for 1000 time units, there exists along the path a configuration in which we are at level one, we won and we have at least 200 points</comment>
-			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-18 12:52:21 +0200">
-				<details>≤ 0.0499441 (95% CI)</details>
-			</result>
+			<option key="--epsilon" value="0.08"/>
 		</query>
 		<query>
 			<formula/>
 			<comment/>
 		</query>
 		<query>
-			<formula>Pr[&lt;=20000] ([] frogger.lives == 5)</formula>
+			<formula>Pr[&lt;=299;1000] ([] frogger.lives == 5)</formula>
 			<comment/>
-			<result outcome="success" type="interval" value="≤ 0.0499441 (95% CI)" timestamp="2026-05-18 12:54:08 +0200">
-				<details>≤ 0.0499441 (95% CI)</details>
+			<result outcome="failure" type="quantity" value="0.575776 ± 0.0310916 (95% CI)" timestamp="2026-05-22 12:57:53 +0200">
+				<option key="--epsilon" value="0.02"/>
+				<details>0.575776 ± 0.0310916 (95% CI)</details>
+			</result>
+		</query>
+		<query>
+			<formula>Pr[&lt;=23;1000] (&lt;&gt; (!(global_clock &gt; 20) || frogger.y &gt; 0))</formula>
+			<comment/>
+			<result outcome="success" type="interval" value="≥ 0.996318 (95% CI)" timestamp="2026-05-22 12:56:55 +0200">
+				<option key="--epsilon" value="0.02"/>
+				<details>≥ 0.996318 (95% CI)</details>
+				<plot title="Probability Density Distribution" xaxis="run duration in time" yaxis="probability density">
+					<series title="density" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,4.503599627370496E15
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
+0.0,4.503599627370496E15
+					</series>
+					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
+Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
+Span of displayed sample: [0, 0]
+Mean estimate of displayed sample: ≈ 0</comment>
+				</plot>
+				<plot title="Probability Density Confidence Intervals" xaxis="run duration in time" yaxis="probability density">
+					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">0.0,1.0
+					</series>
+					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,0.9963179161031344
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
+0.0,4.503599627370496E15
+					</series>
+					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
+Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
+Span of displayed sample: [0, 0]
+Mean estimate of displayed sample: ≈ 0</comment>
+				</plot>
+				<plot title="Probability Distribution" xaxis="run duration in time" yaxis="probability">
+					<series title="probability" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,1.0
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
+0.0,1.0
+					</series>
+					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
+Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
+Span of displayed sample: [0, 0]
+Mean estimate of displayed sample: ≈ 0</comment>
+				</plot>
+				<plot title="Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
+					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">0.0,1.0
+					</series>
+					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,0.9963179161031344
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
+0.0,1.0
+					</series>
+					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
+Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
+Span of displayed sample: [0, 0]
+Mean estimate of displayed sample: ≈ 0</comment>
+				</plot>
+				<plot title="Cumulative Probability Distribution" xaxis="run duration in time" yaxis="probability">
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">0.0,0.0
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
+0.0,1.0
+					</series>
+					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
+Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
+Span of displayed sample: [0, 0]
+Mean estimate of displayed sample: ≈ 0</comment>
+				</plot>
+				<plot title="Cumulative Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
+					<series title="upper limit" type="k" color="0x0000dd" encoding="csv">0.0,0.003682083896865672
+					</series>
+					<series title="lower limit" type="k" color="0xdd0000" encoding="csv">0.0,0.0
+					</series>
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">0.0,0.0
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
+0.0,1.0
+					</series>
+					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
+Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
+Span of displayed sample: [0, 0]
+Mean estimate of displayed sample: ≈ 0</comment>
+				</plot>
+				<plot title="Frequency Histogram" xaxis="run duration in time" yaxis="count">
+					<series title="count" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,1000.0
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
+0.0,1000.0
+					</series>
+					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
+Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
+Span of displayed sample: [0, 0]
+Mean estimate of displayed sample: ≈ 0</comment>
+				</plot>
 			</result>
 		</query>
 	</queries>
