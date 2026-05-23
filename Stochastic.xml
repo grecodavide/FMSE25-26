@@ -465,6 +465,21 @@ void die() {
     lives = lives - 1;
 }
 
+bool is_cell_safe(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
+    int [-1, 4] cell = get_cell(row, col);
+    if (is_water(row)) {
+        return (
+            cell == C_OBJ ||
+            cell == C_TURTLE ||
+            (cell == C_DIVING &amp;&amp; are_diving_turtles_up) 
+        );
+    } else if (is_street(row)) {
+        return cell != C_OBJ;
+    } else {
+        return true;
+    }
+}
+
 /**
 * Checks if the current position occupied by frogger kills him. This means:
 * - it is on the road and a vehicle occupies its same cell
@@ -475,18 +490,7 @@ void die() {
 * If one of those conditions is true, the died variable is set to true.
 */
 void check_death() {
-    int[-1, 4] cell = get_cell(y, x);
-    if (is_water(y)) {
-         // subtract because directions are not inverted here, while in the directions array they are
-        int[0, MATRIX_COLS] new_x = (MATRIX_COLS + x - directions[y]) % MATRIX_COLS;
-        if ((cell == C_DIVING &amp;&amp; !are_diving_turtles_up) || cell == C_EMPTY) {
-            died = true;
-        }
-    } else if (is_street(y)) {
-        if (cell == C_OBJ) {
-            died = true;
-        }
-    }
+    died = !is_cell_safe(y, x);
 }
 
 /**
@@ -512,6 +516,35 @@ void assign_weights(int[0,10] new_weights[5]) {
     }
 }
 
+bool is_safe(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
+    int[0, MATRIX_COLS] next_x;
+    
+    if (speeds[row] == 0) {
+        return true;
+    } else {
+        if (directions[row] == 1) {
+            if (col == 0) {
+                next_x = MATRIX_COLS;
+            } else {
+                next_x = col - 1;
+            }
+        } else {
+            if (col == MATRIX_COLS) {
+                next_x = 0;
+            } else {
+                next_x = col + 1;
+            }
+        }
+        
+        return (
+            is_cell_safe(row, col) &amp;&amp; 
+            is_cell_safe(row, next_x) &amp;&amp;
+            get_cell(row, col) != C_DIVING &amp;&amp;
+            get_cell(row, next_x) != C_DIVING
+        );
+    }
+}
+
 void update_weights() {
     int[-1, 4] next_cell;
     int[-1, 4] cell = get_cell(y+1, x);
@@ -527,18 +560,10 @@ void update_weights() {
                 next_cell = get_cell(y+1, x+1);
             }
 
-            if (is_street(y+1)) {
-                if (cell == C_EMPTY &amp;&amp; next_cell == C_EMPTY) {
-                    new_weights[direction_up] = 10;
-                } else { // handle street waiting behavior
-                    new_weights[direction_none] = 10;
-                }
-            } else if (is_water(y+1)) {
-                if (cell != C_EMPTY &amp;&amp; next_cell != C_EMPTY &amp;&amp; cell != C_DIVING &amp;&amp; next_cell != C_DIVING) { // maybe avoid diving turtles
-                    new_weights[direction_up] = 10;
-                } else { // handle water waiting behavior
-                    new_weights[direction_none] = 10;
-                }
+            if (is_cell_safe(y+1, x)) {
+                new_weights[direction_up] = 10;
+            } else {
+                new_weights[direction_none] = 10;
             }
         }
     } else {
@@ -547,6 +572,8 @@ void update_weights() {
     
     assign_weights(new_weights);
 }
+
+
 
 int[0, 4] direction = direction_none;
 
