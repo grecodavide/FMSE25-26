@@ -469,7 +469,7 @@ bool is_cell_safe(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
     int [-1, 4] cell = get_cell(row, col);
     if (is_water(row)) {
         return (
-            cell == C_OBJ ||
+            cell == C_LOG ||
             cell == C_TURTLE ||
             (cell == C_DIVING &amp;&amp; are_diving_turtles_up) 
         );
@@ -516,69 +516,75 @@ void assign_weights(int[0,10] new_weights[5]) {
     }
 }
 
-bool is_safe(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
-    int[0, MATRIX_COLS] next_x;
-    
-    if (speeds[row] == 0) {
+bool is_safe_up() {
+    int row, col;
+    if (y == MAX_Y) {
         return true;
-    } else {
-        if (directions[row] == 1) {
-            if (col == 0) {
-                next_x = MATRIX_COLS;
-            } else {
-                next_x = col - 1;
-            }
-        } else {
-            if (col == MATRIX_COLS) {
-                next_x = 0;
-            } else {
-                next_x = col + 1;
-            }
-        }
-        
+    }
+
+    row = y+1;
+    col = x;
+
+
+    if (row == TRUCK_ROW) {
+        int next = (col + directions[TRUCK_ROW]) % MATRIX_COLS;
+        return is_cell_safe(row, col) &amp;&amp; is_cell_safe(row, next);
+    }
+
+     if (speeds[row] == 0) {
+         return true;
+     }
+
+    if ((ticks + 1) % speeds[row] == 0) {
+        int next = (col + 1 * directions[row]) % MATRIX_COLS;
         return (
-            is_cell_safe(row, col) &amp;&amp; 
-            is_cell_safe(row, next_x) &amp;&amp;
+            is_cell_safe(row, col) &amp;&amp;
             get_cell(row, col) != C_DIVING &amp;&amp;
-            get_cell(row, next_x) != C_DIVING
+            is_cell_safe(row, col) &amp;&amp;
+            is_cell_safe(row, next) &amp;&amp;
+            get_cell(row, next) != C_DIVING
         );
     }
+
+    return is_cell_safe(row, col) &amp;&amp; get_cell(row, col) != C_DIVING;
 }
+
+int next_row_pos;
 
 void update_weights() {
     int[-1, 4] next_cell;
     int[-1, 4] cell = get_cell(y+1, x);
     int[0, 10] new_weights[5] = {0, 0, 0, 0, 0};
-    if (y &lt; MAX_Y) {
-        int[-1,1] next_row_direction = directions[y+1];
-        if (next_row_direction == 0) {
-            new_weights[direction_up] = 10;
-        } else {
-            if (next_row_direction == 1) {
-                next_cell = get_cell(y+1, x-1);
-            } else {
-                next_cell = get_cell(y+1, x+1);
-            }
 
-            if (is_cell_safe(y+1, x)) {
-                new_weights[direction_up] = 10;
-            } else {
-                new_weights[direction_none] = 10;
-            }
-        }
-    } else {
+    next_row_pos = rows[y+1][(MATRIX_COLS + x + offsets[y+1] * directions[y+1]) % MATRIX_COLS];
+
+    if (is_safe_up()) {
         new_weights[direction_up] = 10;
+    } else {
+        if (speeds[y] == 0) {
+            new_weights[direction_left] = 5;
+            new_weights[direction_right] = 5;
+            new_weights[direction_none] = 5;
+        } else {
+            new_weights[direction_none] = 10;
+        }
     }
-    
+
     assign_weights(new_weights);
 }
-
 
 
 int[0, 4] direction = direction_none;
 
 int[0, 4] choose_direction() {
-    int[0, 10] r = fint(random(11));
+    int max = 0;
+    int r;
+    
+    for (i: int[0, 4]) {
+        max += weights[i];
+    }
+    
+    r = fint(random(max));
     for (i: int[0, 4]) {
         if (weights[i] &gt; 0 &amp;&amp; r &lt;= weights[i]) {
             return i;
