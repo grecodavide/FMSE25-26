@@ -562,8 +562,11 @@ void update_weights() {
         new_weights[direction_up] = 10;
     } else {
         if (speeds[y] == 0) {
-            new_weights[direction_left] = 5;
-            new_weights[direction_right] = 5;
+            if (offsets[y+1] &gt; MATRIX_COLS/2) {
+                new_weights[direction_right] = 5;
+            } else {
+                new_weights[direction_left] = 5;
+            }
             new_weights[direction_none] = 5;
         } else {
             new_weights[direction_none] = 10;
