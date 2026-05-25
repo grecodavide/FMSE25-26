@@ -536,7 +536,7 @@ bool is_safe_up() {
      }
 
     if ((ticks + 1) % speeds[row] == 0) {
-        int next = (col + 1 * directions[row]) % MATRIX_COLS;
+        int next = (MATRIX_COLS + col + 1 * directions[row]) % MATRIX_COLS;
         return (
             is_cell_safe(row, col) &amp;&amp;
             get_cell(row, col) != C_DIVING &amp;&amp;
@@ -549,27 +549,29 @@ bool is_safe_up() {
     return is_cell_safe(row, col) &amp;&amp; get_cell(row, col) != C_DIVING;
 }
 
-int next_row_pos;
 
 void update_weights() {
     int[-1, 4] next_cell;
     int[-1, 4] cell = get_cell(y+1, x);
     int[0, 10] new_weights[5] = {0, 0, 0, 0, 0};
 
-    next_row_pos = rows[y+1][(MATRIX_COLS + x + offsets[y+1] * directions[y+1]) % MATRIX_COLS];
-
     if (is_safe_up()) {
         new_weights[direction_up] = 10;
     } else {
         if (speeds[y] == 0) {
             if (offsets[y+1] &gt; MATRIX_COLS/2) {
+                // TODO: add a check on row direction for completeness
                 new_weights[direction_right] = 5;
             } else {
                 new_weights[direction_left] = 5;
             }
             new_weights[direction_none] = 5;
         } else {
-            new_weights[direction_none] = 10;
+            if (is_cell_safe(y, x)) {
+                new_weights[direction_none] = 10;    
+            } else {
+                new_weights[direction_down] = 10;
+            }
         }
     }
 
@@ -732,6 +734,117 @@ system frogger, world, truck1, truck2;</system>
 			<formula>Pr[&lt;=1000;1000] (&lt;&gt; (frogger.level == 2 &amp;&amp; frogger.did_win() &amp;&amp; frogger.points &gt;= 200))</formula>
 			<comment>Probability that, running for 1000 time units, there exists along the path a configuration in which we are at level one, we won and we have at least 200 points</comment>
 			<option key="--epsilon" value="0.08"/>
+			<result outcome="success" type="quantity" value="0.00372407 ± 0.00348177 (95% CI)" timestamp="2026-05-25 09:03:20 +0200">
+				<option key="--epsilon" value="0.08"/>
+				<details>0.00372407 ± 0.00348177 (95% CI)</details>
+				<plot title="Probability Density Distribution" xaxis="run duration in time" yaxis="probability density">
+					<series title="density" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,0.001
+499.0,0.0
+500.0,0.001
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
+499.0,0.001
+					</series>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
+Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
+Displayed sample set: { 500, 498 }
+Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+				</plot>
+				<plot title="Probability Density Confidence Intervals" xaxis="run duration in time" yaxis="probability density">
+					<series title="upper limit" type="b(1.000000)" color="0xa0a0ff" encoding="csv">498.0,0.005558924279826673
+499.0,0.003682083896865672
+500.0,0.005558924279826673
+					</series>
+					<series title="lower limit" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,2.5317487491294045E-5
+499.0,0.0
+500.0,2.5317487491294045E-5
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
+499.0,0.005558924279826673
+					</series>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
+Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
+Displayed sample set: { 500, 498 }
+Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+				</plot>
+				<plot title="Probability Distribution" xaxis="run duration in time" yaxis="probability">
+					<series title="probability" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,0.001
+499.0,0.0
+500.0,0.001
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
+499.0,0.001
+					</series>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
+Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
+Displayed sample set: { 500, 498 }
+Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+				</plot>
+				<plot title="Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
+					<series title="upper limit" type="b(1.000000)" color="0xa0a0ff" encoding="csv">498.0,0.005558924279826673
+499.0,0.003682083896865672
+500.0,0.005558924279826673
+					</series>
+					<series title="lower limit" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,2.5317487491294045E-5
+499.0,0.0
+500.0,2.5317487491294045E-5
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
+499.0,0.005558924279826673
+					</series>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
+Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
+Displayed sample set: { 500, 498 }
+Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+				</plot>
+				<plot title="Cumulative Probability Distribution" xaxis="run duration in time" yaxis="probability">
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">498.0,0.0
+499.0,0.001
+500.0,0.001
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
+499.0,0.0020000000000000018
+					</series>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
+Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
+Displayed sample set: { 500, 498 }
+Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+				</plot>
+				<plot title="Cumulative Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
+					<series title="upper limit" type="k" color="0x0000dd" encoding="csv">498.0,0.003682083896865672
+499.0,0.005558924279826673
+500.0,0.005558924279826673
+					</series>
+					<series title="lower limit" type="k" color="0xdd0000" encoding="csv">498.0,0.0
+499.0,2.5317487491294045E-5
+500.0,2.5317487491294045E-5
+					</series>
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">498.0,0.0
+499.0,0.001
+500.0,0.001
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
+499.0,0.0020000000000000018
+					</series>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
+Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
+Displayed sample set: { 500, 498 }
+Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+				</plot>
+				<plot title="Frequency Histogram" xaxis="run duration in time" yaxis="count">
+					<series title="count" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,1.0
+499.0,0.0
+500.0,1.0
+					</series>
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
+499.0,1.0
+					</series>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
+Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
+Displayed sample set: { 500, 498 }
+Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+				</plot>
+			</result>
 		</query>
 		<query>
 			<formula/>
