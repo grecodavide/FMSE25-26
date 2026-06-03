@@ -194,7 +194,7 @@
 /// - doc (content): document body
 #let setup-document(
     title: none,
-    author,
+    author: (),
     glossary: (),
     number_page: true,
     doc,
@@ -240,10 +240,6 @@
     // reset math counter and environments counters every time a new heading of level 1 (section) is created
     show heading.where(level: 1): it => {
         counter(math.equation).update(0)
-        for env in theorems {
-            counter(figure.where(kind: env)).update(0)
-        }
-
         it
     }
 
