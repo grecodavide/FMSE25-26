@@ -77,7 +77,7 @@ bool are_diving_turtles_up = true;
 * -  1 means there is an object on it (depending on the row, a vehicle, a floating object or a wall)
 * -  2 means the cell is a whithin a diving turtle group
 */
-int[-1,4] get_cell(int row, int col) {
+int[-1,4] get_cell(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
     int[-1,1] dir = directions[row];
     int[-MATRIX_COLS, MATRIX_COLS] offset = offsets[row] * dir;
     int[0, MATRIX_COLS] cur_col = (MATRIX_COLS + col + offset) % MATRIX_COLS;
@@ -581,7 +581,7 @@ system frogger, world;
 		<query>
 			<formula>A[] not deadlock</formula>
 			<comment>1.1) Without considering Frogger: the game never reaches a deadlock state.</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:31:48 +0200">
+			<result outcome="success" type="quality" timestamp="2026-06-22 11:52:09 +0200">
 			</result>
 		</query>
 		<query>
@@ -599,38 +599,38 @@ system frogger, world;
 move inside their predefined row.
 
 This is true by construction in our model, we still check that offsets stay within (0, MATRIX_COLS)</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-11 11:31:48 +0200">
+			<result outcome="success" type="quality" timestamp="2026-06-22 12:00:36 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:28 +0200">
+			<result outcome="success" type="quality" timestamp="2026-06-22 12:14:45 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:28 +0200">
+			<result outcome="success" type="quality" timestamp="2026-06-22 12:19:50 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:28 +0200">
+			<result outcome="success" type="quality" timestamp="2026-06-22 12:23:09 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:30 +0200">
+			<result outcome="success" type="quality" timestamp="2026-06-22 12:25:20 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.died_by_submerging</formula>
 			<comment>TO BE FIXED
 E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</comment>
-			<result outcome="success" type="quality" timestamp="2026-05-12 09:00:30 +0200">
+			<result outcome="success" type="quality" timestamp="2026-06-22 12:28:11 +0200">
 			</result>
 		</query>
 		<query>

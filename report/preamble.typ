@@ -264,7 +264,8 @@
         fill: white.darken(5%),
         lang-stroke: none,
         lang-fill: lang => white.darken(5%),
-        number-align: right + horizon,
+        number-format: none,
+        lang-format: none
     )
 
     // NOTE: This goes after underline of ref, or they all will be blue and highlighted
