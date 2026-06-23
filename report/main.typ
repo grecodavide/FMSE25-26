@@ -39,9 +39,9 @@ unnoticed.
 
 == World movement (symbolic)<sec:world-movement>
 Since all elements of a row move at the same speed (at least for the symbolic
-version, see #todo([link to stochastic handling of trucks])), to reduce
-state-space size we decided to model the world as an array of rows that move
-with the speed of the elements occupying the given row. To achieve this we used:
+version, see @sec:stochastic-version), to reduce state-space size we decided to
+model the world as an array of rows that move with the speed of the elements
+occupying the given row. To achieve this we used:
 - A matrix containing the initial state of the world: each row has 18 + 2
     columns, to handle the warping that takes two more steps. Each cell is an
     int representing the type of the cell, which can be
@@ -365,26 +365,65 @@ For a total of 136 points. As a matter of fact, if we run the query without the
 points requirement, with the static policy we still get 0 successes, while with
 the dynamic one we get 4965 successes. In general, our dynamic policy strongly
 prefers survival and winning over point scoring, so any strict requirement on
-points will bring the number of successes down significantly. As a matter of
-fact, running the following queries:
-```txt
-simulate[<=1000; 10] {frogger.points}
-simulate[<=1000; 10] {frogger.level}
-simulate[<=1000; 10] {frogger.lives}
-```
-#figure(
-    image("assets/points_simulation.svg"),
-)
-#figure(
-    image("assets/level_simulation.svg"),
-)
-#figure(
-    image("assets/lives_simulation.svg"),
-)
-
+points will bring the number of successes down significantly.
 
 // End of subsubsection (level 3) "First query"
+
+=== Second query<sec:second-query>
+To better illustrate the improvements our dynamic policy presents over the
+static one, we used the following queries:
+```txt
+simulate[<=600; 10] {frogger.points}
+simulate[<=600; 10] {frogger.level}
+simulate[<=600; 10] {frogger.lives}
+```
+We then ran them for both the static and dynamic policy, and compared the
+obtained results (each simulation is of a different color only for better
+readability):
+#sbs(
+    image("assets/static_points_simulation.png", width: 100%),
+    image("assets/dynamic_points_simulation.png", width: 100%),
+    caption: [Comparison of the static and dynamic policy for the points
+        scoring],
+)
+#sbs(
+    image("assets/static_level_simulation.png", width: 100%),
+    image("assets/dynamic_level_simulation.png", width: 100%),
+    caption: [Comparison of the static and dynamic policy for the level
+        reached],
+)
+#sbs(
+    image("assets/static_lives_simulation.png", width: 100%),
+    image("assets/dynamic_lives_simulation.png", width: 100%),
+    caption: [Comparison of the static and dynamic policy for the remaining
+        lives],
+)
+
+As we can see, the dynamic policy reaches higher levels (if we increase the time
+interval to 1000, we almost always get to level 3 and often 4), with more lives.
+Points are also higher in the long run, because completing levels gives more
+points than going up and down: we can see we have a lot of steep increases, that
+correspond to the level completion (which we do not observe in the static
+version, as we can see from the scale of the two graphs).
+
+It is also worth noting that this holds true for the lower levels: since our
+policy prefers vertical movement, it often happens that in the safe line
+separating the "grey" lines from the "light blue" ones, the player has to wait
+for a long time for the floating object to be in front of him, making him lose
+frequently at higher levels where the timer is much shorter. This could be
+solved with a more complex policy that, when the player is on that row:
+- checks the relative position of the floating object with respect to the player
+- knowing the direction of movement of the next row, updates the weights so that
+    the player goes in the direction that guarantees the lowest amount of time
+    before the player can jump on the floating object (the row is safe, so
+    horizontal movement is always safe)
+
+// End of subsubsection (level 3) "Second query"
 
 // End of subsection (level 2) "Queries"
 
 // End of section (level 1) "Stochastic version"
+
+#pagebreak()
+
+BIBLIOGRAPHY
