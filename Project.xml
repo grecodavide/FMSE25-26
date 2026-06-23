@@ -86,7 +86,7 @@ int[-1,4] get_cell(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
 }
 
 /**
-* Predicate returning the type of row
+* Returns whether the given row is a "light blue" one
 *
 * @param: int - the row number
 *
@@ -99,7 +99,7 @@ bool is_water(int[0, MAX_Y] row) {
 }
 
 /**
-* Predicate returning the type of row
+* Returns whether the given row is a "grey" one
 *
 * @param: int - the row number
 *
@@ -112,7 +112,8 @@ bool is_street(int[0, MAX_Y] row) {
 }
 
 /**
-* Predicate returning whether a row is moving this time unit
+* Returns whether a row is moving this time unit
+* (i.e. its speed is a divisor of the current number of ticks)
 *
 * @param: int - the row number
 *
@@ -251,7 +252,7 @@ int[0,4] bay_idx(int[0, MATRIX_COLS] col) {
 }
 
 /**
-* Predicate checking whether the home bay in the given column is free.
+* Returns whether the home bay in the given column is free.
 * This function does not perform any check on the row number, just on the column
 *
 * @param: int[0, MATRIX_COLS] - col: the column in the grid to be checked
@@ -263,7 +264,7 @@ bool is_free_home_bay(int[0,MATRIX_COLS] col) {
 }
 
 /**
-* Predicate checking whether the given column represents a wall in the last row or an already
+* Returns whether the given column represents a wall in the last row or an already
 * occupied home bay. This function does not perform any check on the row number, just on the column.
 *
 * @param: int[0, MATRIX_COLS] - col: the column in the grid to be checked
@@ -275,7 +276,9 @@ bool is_wall(int[0, MAX_X] col) {
 }
 
 /**
-* Checks if movement in the specified cell is valid.
+* Returns whether movement in the specified cell is valid
+* (i.e. the column is in range [0,17] and if the row is the
+*  last, then the column must be a free home bay). 
 *
 * @param: int[-1, MAX_Y+1] - row: the destination's y coordinate
 * @param: int[-1, MATRIX_COLS] - col: the destination's x coordinate
@@ -298,9 +301,11 @@ bool can_move_into(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
 }
 
 /**
-* Attempts to move in the specified direction.
-* Note that this function does not check safety of frogger,
-* so if a movement kills him, it will still happen.
+* Attempts to move in the specified direction. If the required
+* movement is not valid, nothing will happen (equivalent to
+* specifying direction_none).
+* Note that this does not check safety of frogger,
+* so if a movement kills him, it will still be performed.
 *
 * @param: int[0, 4] - direction: the desired direction:
 *               -  0 means stay still
@@ -348,7 +353,7 @@ void respawn(){
 }
 
 /**
-* Predicate checking whether frogger won the current level (i.e. it occupied all home bays).
+* Returns whether frogger won the current level (i.e. it occupied all home bays).
 *
 * @returns true if all the home bays were occupied, false otherwise
 */
@@ -397,13 +402,14 @@ void die() {
 }
 
 /**
-* Checks if the current position occupied by frogger kills him. This means:
+* Updates the `died` attribute of the player based on the current position.
+* If any of the following is true, the player died:
 * - it is on the road and a vehicle occupies its same cell
 * - it is in the river and one of the following is true:
 *     - nothing else occupies that cell
 *     - a diving turtle occupies that cell and they are submerged
 *
-* If one of those conditions is true, the died variable is set to true.
+* Otherwise, the player is alive
 */
 void check_death() {
     int[-1, 4] cell = get_cell(y, x);
@@ -423,7 +429,7 @@ void check_death() {
 /**
 * Updates frogger position if it is on a floating object that just moved
 */
-void world_updated() {
+void update_position() {
     int[-1, 4] cell = get_cell(y, x);
 
     if (is_water(y)) {
@@ -453,7 +459,7 @@ void world_updated() {
 * @see frogger.move()
 */
 void play_turn(int[0, 4] direction) {
-    world_updated();
+    update_position();
     check_death(); // Check if World killed us
 
     if (died &amp;&amp; on_cell == C_DIVING) {
