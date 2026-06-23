@@ -238,20 +238,6 @@
     // ===== NUMBERING =====
     set heading(numbering: "1.")
     // reset math counter and environments counters every time a new heading of level 1 (section) is created
-    show heading.where(level: 1): it => {
-        counter(math.equation).update(0)
-        it
-    }
-
-    // math numbering in references
-    set math.equation(numbering: it => {
-        let count = counter(heading.where(level: 1)).at(here()).first()
-        if count > 0 {
-            numbering("1.1", count, it)
-        } else {
-            numbering("1", it)
-        }
-    })
 
     // ===== PLUGIN INIT ======
     show: codly-init.with()

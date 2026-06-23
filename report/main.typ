@@ -22,7 +22,7 @@
 == Master-slave approach<sec:master-slave-approach>
 Since at every tick both the world and the player must move, we decided to take
 a master-slave approach: at each tick, the world moves first, and notifies a
-global urgent channel, from which the player listens. As soon as the world
+global broadcast channel, that the player listens to. As soon as the world
 ticked, the player performs its "turn", which is:
 - checking if the world movement killed him
 - if not, perform a movement (which can either be to go up or to stay still)
@@ -260,3 +260,131 @@ this, it is easily verified: 0.325s
 // End of subsection (level 2) "Seventh query"
 
 // End of section (level 1) "Symbolic version results"
+
+= Stochastic version<sec:stochastic-version>
+The modeling of the stochastic version is based on the symbolic one, so all the
+design choices described in @sec:design-choices remain valid, with some slight
+modifications. To handle the trucks moving randomly, we must
+- Add a new array, representing the positions of the two trucks
+- Implement a new automata:
+
+    #figure(
+        image("assets/2026-06-22-22-35-17.png", width: 80%),
+    )
+
+    This makes the automata exit the `Waiting` state with an exponential
+    probability distribution having
+    $ lambda = frac(1, mono("TRUCK SPEED")) $
+
+    Every time a movement is triggered, the `update_truck_position` function is
+    called: if the movement would not cause any overlap, it moves the truck to
+    the next cell. We create two of these automata (as their movements must be
+    unrelated to one another)
+
+Finally, the `get_cell` function will perform an extra check: if the given row
+is the row of the trucks, instead of using the matrix and offsets array, we just
+use the offsets updated by the two `Truck` automata.
+
+As for the `World` automata, there are no differences from the symbolic version,
+since the trucks are handled by separate automata.
+
+The player instead has some differences:
+- Since here there can be more than one level, if the player wins a level it
+    goes back to the `Reset` state, not to `GameOver`
+- The movement is now done through the `play_turn` function: we decided to use a
+    single transition in which a direction is chosen at random based on the
+    assigned weights; as this allowed us to modify weights (as per #link(
+        "https://docs.uppaal.org/language-reference/system-description/templates/edges/#weights",
+        "Uppaal specification",
+    ), the weights must be constants, and that would not allow us to dynamically
+    set the weights for the second query). Moreover, the specification also
+    states that "an edge is still possible even if its weight happens to be
+    zero" in symbolic simulation, which we found useful to debug unexpected
+    behaviors of our system. To decide the movement's direction, we defined the
+    `choose_direction` function: it sums all the weights, and generates a random
+    number from 0 to the sum of all weights using the `random` function ("pseudo
+    random number distributed uniformly over the range [0, max)."). Then, it
+    iterates over all the weights:
+    - if the current weights is greater than zero and greater than the random
+        number, it chooses the movement associated with the weight
+    - otherwise, it subtracts to the generated number the weight and goes to the
+        next one For example, let us assume that we have the following weights:
+        `[0, 5, 1, 2, 2]` (direction none, up, down, left, right), and the
+        generated number is 8. The function does the following checks:
+        1. direction none (no movement): weight is not greater than zero, skip
+        2. direction up: is 5 greater than 8? No, so the random number becomes
+            8-5 = 2
+        3. direction down: is 1 greater than 2? No, so the random number becomes
+            2-1 = 1
+        4. direction left: is 2 greater than 1? Yes, so the chosen direction is
+            left
+        Note that this respects the weights, as numbers `{0, 1, 2, 3, 4}` means
+        the choice is up, number `{5}` means choice is down, numbers `{6, 7}`
+        mean choice is left, and number `{8, 9}` mean choice is right (number 10
+        is excluded from range).
+Here is reported the new automata:
+#figure(
+    image("assets/2026-06-23-09-16-45.png", width: 90%),
+)
+
+== Queries<sec:queries>
+For the first query, the static policy must be used: to ensure that, under
+"System declarations", ensure the line `frogger = Frogger(false);` is
+uncommented and the line `frogger = Frogger(true);` is commented.
+
+=== First query<sec:first-query>
+The assignment is "Given the above specification for the Stochastic version,
+simulate the game for a maximum of 1000 time units and estimate the probability
+of completing the first level while scoring at least 200 points". To check the
+required property, we used the following query:
+```txt
+Pr[<=1000;5000] (<> (frogger.level == 2 && frogger.did_win() && frogger.points >= 200))
+```
+
+This ensures that:
+- for a maximum of 1000 time units (`Pr[<=1000`)
+- repeat 1000 times (`; 5000]`
+- check if a state exists such that:
+    - the current level is 2
+    - the player just won
+    - the player has at least 200 points
+    This matches the assignment, as in our modeling, the function
+    `occupy_home_bay()` will increase the level: this means that when the player
+    wins the first level, the configuration will be with `level = 2`, and
+    `did_win()` returns true.
+
+The results of the query is that in 0 runs out of 5000 the requirements are
+verified. If we use the dynamic policy, we get a bit more successes (31): this
+is due to the points requirement. Since our player will always prefer moving up
+if it is safe, and the points are 1 per movement up, 5 per home bay, and 100 per
+level won, if we never go back down we get:
+- 12 times 1 point for going up
+- 5 times 5 points for the home bays
+- 1 time 100 points for winning the level
+For a total of 136 points. As a matter of fact, if we run the query without the
+points requirement, with the static policy we still get 0 successes, while with
+the dynamic one we get 4965 successes. In general, our dynamic policy strongly
+prefers survival and winning over point scoring, so any strict requirement on
+points will bring the number of successes down significantly. As a matter of
+fact, running the following queries:
+```txt
+simulate[<=1000; 10] {frogger.points}
+simulate[<=1000; 10] {frogger.level}
+simulate[<=1000; 10] {frogger.lives}
+```
+#figure(
+    image("assets/points_simulation.svg"),
+)
+#figure(
+    image("assets/level_simulation.svg"),
+)
+#figure(
+    image("assets/lives_simulation.svg"),
+)
+
+
+// End of subsubsection (level 3) "First query"
+
+// End of subsection (level 2) "Queries"
+
+// End of section (level 1) "Stochastic version"

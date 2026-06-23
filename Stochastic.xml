@@ -42,22 +42,6 @@ const int C_LOG = 2;
 const int C_TURTLE = 3;
 const int C_DIVING = 4;
 
-// const int[-1,4] rows[MAX_Y+1][MATRIX_COLS] = {
-//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
-//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
-//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
-//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
-//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0, -0},
-//     {0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, -1, -1},
-//     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
-//     {0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 0, 0, 0, 4, 4, 4, 4, 4, -1, -1},
-//     {0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 2, 2, 2, 0, 2, 2, 2, -1, -1},
-//     {0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, -1, -1},
-//     {0, 3, 3, 3, 0, 0, 0, 0, 0, 4, 4, 4, 0, 0, 0, 0, 0, 0, -1, -1},
-//     {0, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, -1, -1},
-//     {0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, -1, -1}
-// };
-
 const int[-1,4] rows[MAX_Y+1][MATRIX_COLS] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1},
     {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, -1, -1},
@@ -85,7 +69,7 @@ int [0, MATRIX_COLS] trucks_cols[2] = {4, 15};
 bool are_diving_turtles_up = true;
 
 /**
-* Returns the current cell occupying a given position.
+* Returns the current cell type occupying a given position.
 *
 * @param: int - col: the x coordinate
 * @param: int - row: the y coordinate
@@ -115,7 +99,7 @@ int[-1,4] get_cell(int row, int col) {
 }
 
 /**
-* Predicate returning the type of row
+* Returns whether the given row is a "light blue" one
 *
 * @param: int - the row number
 *
@@ -128,7 +112,7 @@ bool is_water(int row) {
 }
 
 /**
-* Predicate returning the type of row
+* Returns whether the given row is a "grey" one
 *
 * @param: int - the row number
 *
@@ -141,7 +125,8 @@ bool is_street(int row) {
 }
 
 /**
-* Predicate returning whether a row is moving this time unit
+* Returns whether a row is moving this time unit
+* (i.e. its speed is a divisor of the current number of ticks)
 *
 * @param: int - the row number
 *
@@ -289,6 +274,9 @@ const int direction_down = 2;
 const int direction_left = 3;
 const int direction_right = 4;
 
+// used to determine the direction the player will be moving this clock cycle 
+int[0, 4] direction = direction_none;
+
 int[0, 10] weights[5] = {0, 5, 1, 2, 2};
 
 /**
@@ -316,7 +304,7 @@ int[0,4] bay_idx(int[0, MATRIX_COLS] col) {
 }
 
 /**
-* Predicate checking whether the home bay in the given column is free.
+* Returns whether the home bay in the given column is free.
 * This function does not perform any check on the row number, just on the column
 *
 * @param: int[0, MATRIX_COLS] - col: the column in the grid to be checked
@@ -328,7 +316,7 @@ bool is_free_home_bay(int[0,MATRIX_COLS] col) {
 }
 
 /**
-* Predicate checking whether the given column represents a wall in the last row or an already
+* Returns whether the given column represents a wall in the last row or an already
 * occupied home bay. This function does not perform any check on the row number, just on the column.
 *
 * @param: int[0, MATRIX_COLS] - col: the column in the grid to be checked
@@ -340,7 +328,9 @@ bool is_wall(int[0, MAX_X] col) {
 }
 
 /**
-* Checks if movement in the specified cell is valid.
+* Returns whether movement in the specified cell is valid
+* (i.e. the column is in range [0,17] and if the row is the
+*  last, then the column must be a free home bay). 
 *
 * @param: int[-1, MAX_Y+1] - row: the destination's y coordinate
 * @param: int[-1, MATRIX_COLS] - col: the destination's x coordinate
@@ -363,9 +353,11 @@ bool can_move_into(int[-1, MAX_Y+1] row, int[-1, MATRIX_COLS] col) {
 }
 
 /**
-* Attempts to move in the specified direction.
-* Note that this function does not check safety of frogger,
-* so if a movement kills him, it will still happen.
+* Attempts to move in the specified direction. If the required
+* movement is not valid, nothing will happen (equivalent to
+* specifying direction_none).
+* Note that this does not check safety of frogger,
+* so if a movement kills him, it will still be performed.
 *
 * @param: int[0, 4] - direction: the desired direction:
 *               -  0 means stay still
@@ -399,7 +391,7 @@ void move(int[0, 4] direction) {
 
 
 /**
-* Predicate checking whether frogger won the current level (i.e. it occupied all home bays).
+* Returns whether frogger won the current level (i.e. it occupied all home bays).
 *
 * @returns true if all the home bays were occupied, false otherwise
 */
@@ -465,6 +457,12 @@ void die() {
     lives = lives - 1;
 }
 
+/**
+* Returns whether a cell is safe for the player: if the row is
+* a "light blue" one, there must be an object there, if it is
+* a "grey" one, there must NOT be an object there, otherwise it's
+* always safe
+*/
 bool is_cell_safe(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
     int [-1, 4] cell = get_cell(row, col);
     if (is_water(row)) {
@@ -481,13 +479,14 @@ bool is_cell_safe(int[0, MAX_Y] row, int[0, MATRIX_COLS] col) {
 }
 
 /**
-* Checks if the current position occupied by frogger kills him. This means:
+* Updates the `died` attribute of the player based on the current position.
+* If any of the following is true, the player died:
 * - it is on the road and a vehicle occupies its same cell
 * - it is in the river and one of the following is true:
 *     - nothing else occupies that cell
 *     - a diving turtle occupies that cell and they are submerged
 *
-* If one of those conditions is true, the died variable is set to true.
+* Otherwise, the player is alive
 */
 void check_death() {
     died = !is_cell_safe(y, x);
@@ -496,9 +495,9 @@ void check_death() {
 /**
 * Updates frogger position if it is on a floating object that just moved
 */
-void world_updated() {
+void update_position() {
     if (is_water(y)) {
-        // subtract because directions are not inverted here, while in the directions array they are
+        // subtract because directions are not inverted here, while in the directions array are
         int[0, MATRIX_COLS] new_x = (MATRIX_COLS + x - directions[y]) % MATRIX_COLS;
         if (on_cell == C_LOG || on_cell == C_TURTLE || (on_cell == C_DIVING &amp;&amp; are_diving_turtles_up)) {
             if (is_row_moving(y)) {
@@ -510,12 +509,25 @@ void world_updated() {
     on_cell = get_cell(y, x);
 }
 
+/**
+* Updates the probability weights for each direction, if the
+* class attribute `dynamic_policy` is set.
+*/
 void assign_weights(int[0,10] new_weights[5]) {
-    for (i: int[0, 4]) {
-        weights[i] = new_weights[i];
+    if (dynamic_policy) {    
+        for (i: int[0, 4]) {
+            weights[i] = new_weights[i];
+        }
     }
 }
 
+/** Returns whether moving up is safe for frogger.
+* This means that the cell right above the current one must
+* be safe, AND the cell that could move into that position
+* at the next clock cycle
+*
+* @returns true if moving up is safe, false if it would kill the player
+*/
 bool is_safe_up() {
     int row, col;
     if (y == MAX_Y) {
@@ -549,7 +561,13 @@ bool is_safe_up() {
     return is_cell_safe(row, col) &amp;&amp; get_cell(row, col) != C_DIVING;
 }
 
-
+/**
+* Updates and assigns new weights based on the current world state.
+* If moving up is safe, it will always go up, otherwise if the current
+* row could kill the player, checks if the current position is safe (in
+* which case there is no movement), and if it is not it sets prefers going
+* down 
+*/
 void update_weights() {
     int[-1, 4] next_cell;
     int[-1, 4] cell = get_cell(y+1, x);
@@ -578,9 +596,10 @@ void update_weights() {
     assign_weights(new_weights);
 }
 
-
-int[0, 4] direction = direction_none;
-
+/** 
+* Chooses randomly a direction with the probability distribution
+* specified by the `weights` variable
+*/
 int[0, 4] choose_direction() {
     int max = 0;
     int r;
@@ -589,9 +608,9 @@ int[0, 4] choose_direction() {
         max += weights[i];
     }
     
-    r = fint(random(max));
+    r = fint(floor(random(max)));
     for (i: int[0, 4]) {
-        if (weights[i] &gt; 0 &amp;&amp; r &lt;= weights[i]) {
+        if (weights[i] &gt; 0 &amp;&amp; r &lt; weights[i]) {
             return i;
         }
         r -= weights[i];
@@ -600,9 +619,15 @@ int[0, 4] choose_direction() {
     return 0;
 }
 
+/**
+* Performs all checks that happen before the player movement:
+*  - updates frogger position if it was over a floating object that moved
+*  - checks the death of frogger
+*  - if frogger is still alive, updates the weights and sets the direction
+*/
 void pre_move() {
     int[0, 10] x;
-    world_updated();
+    update_position();
     check_death(); // Check if World killed us
 
     if (died &amp;&amp; on_cell == C_DIVING) {
@@ -723,8 +748,8 @@ world  = World();
 truck1 = Truck(0);
 truck2 = Truck(1);
 
-frogger = Frogger(true);
-// frogger = Frogger(false);
+// frogger = Frogger(true);
+frogger = Frogger(false);
 
 
 system frogger, world, truck1, truck2;</system>
@@ -734,115 +759,115 @@ system frogger, world, truck1, truck2;</system>
 			<formula>Pr[&lt;=1000;1000] (&lt;&gt; (frogger.level == 2 &amp;&amp; frogger.did_win() &amp;&amp; frogger.points &gt;= 200))</formula>
 			<comment>Probability that, running for 1000 time units, there exists along the path a configuration in which we are at level one, we won and we have at least 200 points</comment>
 			<option key="--epsilon" value="0.08"/>
-			<result outcome="success" type="quantity" value="0.00372407 ± 0.00348177 (95% CI)" timestamp="2026-05-25 09:03:20 +0200">
+			<result outcome="success" type="quantity" value="0.00565029 ± 0.00455938 (95% CI)" timestamp="2026-06-23 10:13:08 +0200">
 				<option key="--epsilon" value="0.08"/>
-				<details>0.00372407 ± 0.00348177 (95% CI)</details>
+				<details>0.00565029 ± 0.00455938 (95% CI)</details>
 				<plot title="Probability Density Distribution" xaxis="run duration in time" yaxis="probability density">
-					<series title="density" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,0.001
-499.0,0.0
-500.0,0.001
+					<series title="density" type="b(82.000000)" color="0x0000ff" encoding="csv">470.0,1.2195121951219513E-5
+552.0,2.4390243902439026E-5
+634.0,1.2195121951219513E-5
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
-499.0,0.001
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">572.0,0.0
+572.0,2.4390243902439026E-5
 					</series>
-					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
-Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
-Displayed sample set: { 500, 498 }
-Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=82, bucket count=3
+Runs: 1000 in total, 4 (0.4%) displayed, 996 (99.6%) remaining
+Displayed sample set: { 470, 570, 634, 614 }
+Mean estimate of displayed sample: 572 ± 116.3 (95% CI)</comment>
 				</plot>
 				<plot title="Probability Density Confidence Intervals" xaxis="run duration in time" yaxis="probability density">
-					<series title="upper limit" type="b(1.000000)" color="0xa0a0ff" encoding="csv">498.0,0.005558924279826673
-499.0,0.003682083896865672
-500.0,0.005558924279826673
+					<series title="upper limit" type="b(82.000000)" color="0xa0a0ff" encoding="csv">470.0,0.005558924279826673
+552.0,0.007205838911457498
+634.0,0.005558924279826673
 					</series>
-					<series title="lower limit" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,2.5317487491294045E-5
-499.0,0.0
-500.0,2.5317487491294045E-5
+					<series title="lower limit" type="b(82.000000)" color="0x0000ff" encoding="csv">470.0,2.5317487491294045E-5
+552.0,2.4230111687723193E-4
+634.0,2.5317487491294045E-5
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
-499.0,0.005558924279826673
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">572.0,0.0
+572.0,8.787608428606705E-5
 					</series>
-					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
-Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
-Displayed sample set: { 500, 498 }
-Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=82, bucket count=3
+Runs: 1000 in total, 4 (0.4%) displayed, 996 (99.6%) remaining
+Displayed sample set: { 470, 570, 634, 614 }
+Mean estimate of displayed sample: 572 ± 116.3 (95% CI)</comment>
 				</plot>
 				<plot title="Probability Distribution" xaxis="run duration in time" yaxis="probability">
-					<series title="probability" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,0.001
-499.0,0.0
-500.0,0.001
+					<series title="probability" type="b(82.000000)" color="0x0000ff" encoding="csv">470.0,0.001
+552.0,0.002
+634.0,0.001
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
-499.0,0.001
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">572.0,0.0
+572.0,0.002
 					</series>
-					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
-Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
-Displayed sample set: { 500, 498 }
-Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=82, bucket count=3
+Runs: 1000 in total, 4 (0.4%) displayed, 996 (99.6%) remaining
+Displayed sample set: { 470, 570, 634, 614 }
+Mean estimate of displayed sample: 572 ± 116.3 (95% CI)</comment>
 				</plot>
 				<plot title="Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
-					<series title="upper limit" type="b(1.000000)" color="0xa0a0ff" encoding="csv">498.0,0.005558924279826673
-499.0,0.003682083896865672
-500.0,0.005558924279826673
+					<series title="upper limit" type="b(82.000000)" color="0xa0a0ff" encoding="csv">470.0,0.005558924279826673
+552.0,0.007205838911457498
+634.0,0.005558924279826673
 					</series>
-					<series title="lower limit" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,2.5317487491294045E-5
-499.0,0.0
-500.0,2.5317487491294045E-5
+					<series title="lower limit" type="b(82.000000)" color="0x0000ff" encoding="csv">470.0,2.5317487491294045E-5
+552.0,2.4230111687723193E-4
+634.0,2.5317487491294045E-5
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
-499.0,0.005558924279826673
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">572.0,0.0
+572.0,0.007205838911457498
 					</series>
-					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
-Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
-Displayed sample set: { 500, 498 }
-Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=82, bucket count=3
+Runs: 1000 in total, 4 (0.4%) displayed, 996 (99.6%) remaining
+Displayed sample set: { 470, 570, 634, 614 }
+Mean estimate of displayed sample: 572 ± 116.3 (95% CI)</comment>
 				</plot>
 				<plot title="Cumulative Probability Distribution" xaxis="run duration in time" yaxis="probability">
-					<series title="cumulative" type="l" color="0x000000" encoding="csv">498.0,0.0
-499.0,0.001
-500.0,0.001
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">470.0,0.0
+552.0,0.001
+634.0,0.003
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
-499.0,0.0020000000000000018
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">572.0,0.0
+572.0,0.0040000000000000036
 					</series>
-					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
-Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
-Displayed sample set: { 500, 498 }
-Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=82, bucket count=3
+Runs: 1000 in total, 4 (0.4%) displayed, 996 (99.6%) remaining
+Displayed sample set: { 470, 570, 634, 614 }
+Mean estimate of displayed sample: 572 ± 116.3 (95% CI)</comment>
 				</plot>
 				<plot title="Cumulative Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
-					<series title="upper limit" type="k" color="0x0000dd" encoding="csv">498.0,0.003682083896865672
-499.0,0.005558924279826673
-500.0,0.005558924279826673
+					<series title="upper limit" type="k" color="0x0000dd" encoding="csv">470.0,0.003682083896865672
+552.0,0.005558924279826673
+634.0,0.008742023238478303
 					</series>
-					<series title="lower limit" type="k" color="0xdd0000" encoding="csv">498.0,0.0
-499.0,2.5317487491294045E-5
-500.0,2.5317487491294045E-5
+					<series title="lower limit" type="k" color="0xdd0000" encoding="csv">470.0,0.0
+552.0,2.5317487491294045E-5
+634.0,6.190999316495713E-4
 					</series>
-					<series title="cumulative" type="l" color="0x000000" encoding="csv">498.0,0.0
-499.0,0.001
-500.0,0.001
+					<series title="cumulative" type="l" color="0x000000" encoding="csv">470.0,0.0
+552.0,0.001
+634.0,0.003
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
-499.0,0.0020000000000000018
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">572.0,0.0
+572.0,0.0040000000000000036
 					</series>
-					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
-Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
-Displayed sample set: { 500, 498 }
-Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=82, bucket count=3
+Runs: 1000 in total, 4 (0.4%) displayed, 996 (99.6%) remaining
+Displayed sample set: { 470, 570, 634, 614 }
+Mean estimate of displayed sample: 572 ± 116.3 (95% CI)</comment>
 				</plot>
 				<plot title="Frequency Histogram" xaxis="run duration in time" yaxis="count">
-					<series title="count" type="b(1.000000)" color="0x0000ff" encoding="csv">498.0,1.0
-499.0,0.0
-500.0,1.0
+					<series title="count" type="b(82.000000)" color="0x0000ff" encoding="csv">470.0,1.0
+552.0,2.0
+634.0,1.0
 					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">499.0,0.0
-499.0,1.0
+					<series title="average" type="pl" color="0x00dd00" encoding="csv">572.0,0.0
+572.0,2.0
 					</series>
-					<comment>Parameters: α=0.05, ε=0.08, bucket width=1, bucket count=3
-Runs: 1000 in total, 2 (0.2%) displayed, 998 (99.8%) remaining
-Displayed sample set: { 500, 498 }
-Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
+					<comment>Parameters: α=0.05, ε=0.08, bucket width=82, bucket count=3
+Runs: 1000 in total, 4 (0.4%) displayed, 996 (99.6%) remaining
+Displayed sample set: { 470, 570, 634, 614 }
+Mean estimate of displayed sample: 572 ± 116.3 (95% CI)</comment>
 				</plot>
 			</result>
 		</query>
@@ -851,104 +876,19 @@ Mean estimate of displayed sample: 499 ± 12.706 (95% CI)</comment>
 			<comment/>
 		</query>
 		<query>
-			<formula>Pr[&lt;=299;1000] ([] frogger.lives == 5)</formula>
+			<formula>Pr[&lt;=1000;1000] (&lt;&gt; (frogger.level == 3))</formula>
 			<comment/>
-			<result outcome="failure" type="quantity" value="0.575776 ± 0.0310916 (95% CI)" timestamp="2026-05-22 12:57:53 +0200">
+			<result outcome="failure" type="quantity" value="0.840983 ± 0.0230905 (95% CI)" timestamp="2026-06-23 10:14:48 +0200">
 				<option key="--epsilon" value="0.02"/>
-				<details>0.575776 ± 0.0310916 (95% CI)</details>
+				<details>0.840983 ± 0.0230905 (95% CI)</details>
 			</result>
 		</query>
 		<query>
-			<formula>Pr[&lt;=23;1000] (&lt;&gt; (!(global_clock &gt; 20) || frogger.y &gt; 0))</formula>
+			<formula>Pr[&lt;=1000;1000] ([] (frogger.lives == 5 || frogger.lives == 4 || frogger.lives == 3))</formula>
 			<comment/>
-			<result outcome="success" type="interval" value="≥ 0.996318 (95% CI)" timestamp="2026-05-22 12:56:55 +0200">
+			<result outcome="failure" type="quantity" value="0.552844 ± 0.0312767 (95% CI)" timestamp="2026-06-23 10:15:56 +0200">
 				<option key="--epsilon" value="0.02"/>
-				<details>≥ 0.996318 (95% CI)</details>
-				<plot title="Probability Density Distribution" xaxis="run duration in time" yaxis="probability density">
-					<series title="density" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,4.503599627370496E15
-					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
-0.0,4.503599627370496E15
-					</series>
-					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
-Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [0, 0]
-Mean estimate of displayed sample: ≈ 0</comment>
-				</plot>
-				<plot title="Probability Density Confidence Intervals" xaxis="run duration in time" yaxis="probability density">
-					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">0.0,1.0
-					</series>
-					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,0.9963179161031344
-					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
-0.0,4.503599627370496E15
-					</series>
-					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
-Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [0, 0]
-Mean estimate of displayed sample: ≈ 0</comment>
-				</plot>
-				<plot title="Probability Distribution" xaxis="run duration in time" yaxis="probability">
-					<series title="probability" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,1.0
-					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
-0.0,1.0
-					</series>
-					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
-Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [0, 0]
-Mean estimate of displayed sample: ≈ 0</comment>
-				</plot>
-				<plot title="Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
-					<series title="upper limit" type="b(0.000000)" color="0xa0a0ff" encoding="csv">0.0,1.0
-					</series>
-					<series title="lower limit" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,0.9963179161031344
-					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
-0.0,1.0
-					</series>
-					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
-Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [0, 0]
-Mean estimate of displayed sample: ≈ 0</comment>
-				</plot>
-				<plot title="Cumulative Probability Distribution" xaxis="run duration in time" yaxis="probability">
-					<series title="cumulative" type="l" color="0x000000" encoding="csv">0.0,0.0
-					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
-0.0,1.0
-					</series>
-					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
-Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [0, 0]
-Mean estimate of displayed sample: ≈ 0</comment>
-				</plot>
-				<plot title="Cumulative Probability Confidence Intervals" xaxis="run duration in time" yaxis="probability">
-					<series title="upper limit" type="k" color="0x0000dd" encoding="csv">0.0,0.003682083896865672
-					</series>
-					<series title="lower limit" type="k" color="0xdd0000" encoding="csv">0.0,0.0
-					</series>
-					<series title="cumulative" type="l" color="0x000000" encoding="csv">0.0,0.0
-					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
-0.0,1.0
-					</series>
-					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
-Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [0, 0]
-Mean estimate of displayed sample: ≈ 0</comment>
-				</plot>
-				<plot title="Frequency Histogram" xaxis="run duration in time" yaxis="count">
-					<series title="count" type="b(0.000000)" color="0x0000ff" encoding="csv">0.0,1000.0
-					</series>
-					<series title="average" type="pl" color="0x00dd00" encoding="csv">0.0,0.0
-0.0,1000.0
-					</series>
-					<comment>Parameters: α=0.05, ε=0.02, bucket width=2.2204e-16, bucket count=1
-Runs: 1000 in total, 1000 (100%) displayed, 0 (0%) remaining
-Span of displayed sample: [0, 0]
-Mean estimate of displayed sample: ≈ 0</comment>
-				</plot>
+				<details>0.552844 ± 0.0312767 (95% CI)</details>
 			</result>
 		</query>
 	</queries>
