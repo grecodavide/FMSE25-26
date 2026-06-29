@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
-property = "lives"
-simu = f"dynamic_{property}"
+property = "level"
+simu = f"static_{property}"
 filename = f'{simu}_simulation.csv'
 simulations = {}
 current_sim = None

@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
 <nta>
-	<declaration>// Place global declarations here.
-// --- CONSTANTS ---
+	<declaration>// --- CONSTANTS ---
 const int time_unit_to_s = 10;                 // 1 time unit = 0.1s
 const int TIME_LIMIT = 30 * time_unit_to_s;    // 30 seconds
 const int START_DELAY = 2 * time_unit_to_s;    // 2 seconds
@@ -133,7 +132,15 @@ broadcast chan world_ticked;
 </declaration>
 	<template>
 		<name>World</name>
-		<declaration>clock t;
+		<declaration>/// TEMPLATE BEHAVIOR
+/// This template models everything that is not the player.
+/// To reduce the state-space, a single instance handles all the rows:
+/// at every tick of the clock, for each row, if the speed of the row is
+/// a divisor of the current amount of ticks, it increases the corresponding offset.
+/// It is the "master" of the master-slave model, so after the world ticks
+/// it also notifies the channel
+
+clock t;
 
 const int t_above_surface = 10 + 5 + 5; // emerged + emerging + submerging
 const int t_under_surface = 10;         // submerged
@@ -188,7 +195,17 @@ t = 0</label>
 	</template>
 	<template>
 		<name>Frogger</name>
-		<declaration>clock timer;
+		<declaration>/// TEMPLATE BEHAVIOR
+/// This template models the player: it waits for the world to tick and, if
+/// he is still alive, it performs an action (either go up or stay still).
+/// After the action, death is checked again. If after the whole turn the player
+/// is still alive:
+/// - if it is on a home bay, mark it as occupied and check level completion
+/// - otherwise, go back to waiting for the world to tick
+/// If a level is won, the player goes to a sink state, since specifications
+/// clearly state that only the first level is playable
+
+clock timer;
 
 // bays can be accessed only if they are free. We keep track of the already occupied bays like this
 bool home_bays_occupied[5] = {false, false, false, false, false};
@@ -576,17 +593,20 @@ respawn()</label>
 			<label kind="guard" x="-6154" y="-212">timer == 2 * time_unit_to_s</label>
 		</transition>
 	</template>
-	<system>// Place template instantiations here.
-
-world  = World();
+	<system>world  = World();
 frogger = Frogger();
 
+// FIRST TWO QUERIES
+// system world;
+
+// OTHER QUERIES
 system frogger, world;
-// system world;</system>
+
+</system>
 	<queries>
 		<query>
 			<formula>A[] not deadlock</formula>
-			<comment>1.1) Without considering Frogger: the game never reaches a deadlock state.</comment>
+			<comment>1) Without considering Frogger: the game never reaches a deadlock state.</comment>
 			<result outcome="success" type="quality" timestamp="2026-06-22 11:52:09 +0200">
 			</result>
 		</query>
@@ -601,7 +621,7 @@ system frogger, world;
      offsets[9] &gt;= 0 &amp;&amp; offsets[9] &lt; MATRIX_COLS &amp;&amp;
      offsets[10] &gt;= 0 &amp;&amp; offsets[10] &lt; MATRIX_COLS &amp;&amp;
      offsets[11] &gt;= 0 &amp;&amp; offsets[11] &lt; MATRIX_COLS)</formula>
-			<comment>1.2) Without considering Frogger: all vehicles and floating objects can only
+			<comment>2) Without considering Frogger: all vehicles and floating objects can only
 move inside their predefined row.
 
 This is true by construction in our model, we still check that offsets stay within (0, MATRIX_COLS)</comment>
@@ -610,46 +630,53 @@ This is true by construction in our model, we still check that offsets stay with
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.y == 12 &amp;&amp; (frogger.x == 0 || frogger.x == 1)</formula>
-			<comment/>
+			<comment>3) Frogger can reach the home bay in position (0,12)–(1,12).
+
+This is possible thanks to the existence of state `Occupying`,
+in which the player is still in the home bay, and it has not respawned yet</comment>
 			<result outcome="success" type="quality" timestamp="2026-06-22 12:14:45 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.points == 17 &amp;&amp; frogger.home_bays_occupied[2] &amp;&amp; frogger.y == 12 &amp;&amp; (frogger.x == 8 || frogger.x == 9)</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-06-22 12:19:50 +0200">
+			<comment>4) Frogger can score 17 points reaching the home bay in position (8,12)–(9,12).
+
+In state `Occupying` the player has already gained the points from the occupation of the home bay, 
+and it did not respawn yet, so it still occupies the cell corresponding to the home bay,
+so we can simply check points and position (frogger.home_bays_occupied[2] is redundant, added just for completeness)</comment>
+			<result outcome="success" type="quality" timestamp="2026-06-29 18:52:51 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 3 &amp;&amp; frogger.y == 6</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-06-22 12:23:09 +0200">
+			<comment>5) Frogger can reach a yellow cell in row 6 after the player has lost two lives.
+
+This is quite straightforward: losing two lives means the player still has 3 lives left, and it has to be on row 6</comment>
+			<result outcome="success" type="quality" timestamp="2026-06-29 18:52:53 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.lives == 5 &amp;&amp; frogger.on_cell == C_LOG &amp;&amp; global_clock == 10*time_unit_to_s</formula>
-			<comment/>
-			<result outcome="success" type="quality" timestamp="2026-06-22 12:25:20 +0200">
+			<comment>6) Frogger may stand on a log (with five lives) 10 seconds after the game starts.
+
+Since the `frogger.on_cell` variable gets updated at each tick, it always represent the
+cell type frogger is currently on: we just have to check its value after 10 seconds 
+(see global declaration to see all possible cell types)</comment>
+			<result outcome="success" type="quality" timestamp="2026-06-29 18:54:54 +0200">
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; frogger.died_by_submerging</formula>
-			<comment>TO BE FIXED
-E&lt;&gt; frogger.on_cell == C_DIVING &amp;&amp; !are_diving_turtles_up &amp;&amp; frogger.died</comment>
-			<result outcome="success" type="quality" timestamp="2026-06-22 12:28:11 +0200">
+			<comment>7) Frogger can die riding a diving turtle that transitions to the submerged state.
+
+The only time `died_by_submerging` is set to true is when:
+- the world ticking killed frogger
+- frogger was on a diving turtle
+Since frogger moves with diving turtles, the only possibility that kills frogger
+without him moving while he is on a diving turtle is them submerging, which is exactly
+the requirement.</comment>
+			<result outcome="success" type="quality" timestamp="2026-06-29 18:56:57 +0200">
 			</result>
-		</query>
-		<query>
-			<formula/>
-			<comment/>
-		</query>
-		<query>
-			<formula/>
-			<comment/>
-		</query>
-		<query>
-			<formula>frogger_y == 12 --&gt; (frogger_x != 2)</formula>
-			<comment>FOR US, NOT TO BE DELIVERED</comment>
 		</query>
 	</queries>
 </nta>
