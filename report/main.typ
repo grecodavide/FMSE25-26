@@ -426,4 +426,4 @@ solved with a more complex policy that, when the player is on that row:
 
 #pagebreak()
 
-BIBLIOGRAPHY
+#bibliography("bibliography.bib", full: true)
