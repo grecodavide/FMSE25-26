@@ -606,7 +606,9 @@ system frogger, world;
 	<queries>
 		<query>
 			<formula>A[] not deadlock</formula>
-			<comment>1) Without considering Frogger: the game never reaches a deadlock state.</comment>
+			<comment>1) Without considering Frogger: the game never reaches a deadlock state.
+
+Must be run without frogger.</comment>
 			<result outcome="success" type="quality" timestamp="2026-06-22 11:52:09 +0200">
 			</result>
 		</query>
@@ -624,6 +626,7 @@ system frogger, world;
 			<comment>2) Without considering Frogger: all vehicles and floating objects can only
 move inside their predefined row.
 
+Must be run without frogger.
 This is true by construction in our model, we still check that offsets stay within (0, MATRIX_COLS)</comment>
 			<result outcome="success" type="quality" timestamp="2026-06-22 12:00:36 +0200">
 			</result>

@@ -18,6 +18,8 @@
 // drawings
 #import "@preview/cetz:0.4.0" // basic
 
+#let toc_title = "Table of Contents"
+
 // #let draw =
 
 /// Shows two blocks side by side
@@ -202,7 +204,7 @@
     // ===== PAGE SETUP =====
     set text(
         fontsize,
-        font: "Caladea",
+        font: "Source Sans 3",
     )
     show math.equation: set text(font: "STIX Two Math")
 
@@ -218,11 +220,6 @@
     show raw.where(block: false): set text(fill: inline_color)
 
     set terms(separator: [: ])
-
-    set page(numbering: "1", number-align: right + bottom, margin: (
-        x: 1.5cm,
-        y: 1.5cm,
-    )) if number_page
 
     show ref: it => {
         underline(text(fill: blue.darken(20%))[#it])
@@ -251,7 +248,7 @@
         lang-stroke: none,
         lang-fill: lang => white.darken(5%),
         number-format: none,
-        lang-format: none
+        lang-format: none,
     )
 
     // NOTE: This goes after underline of ref, or they all will be blue and highlighted
@@ -264,15 +261,53 @@
     }
 
     // ===== SETUP DOC =====
+    set page(
+        paper: "a4",
+        margin: (
+            x: 3cm,
+            y: 4cm,
+        ),
+        header: context {
+            if counter(page).get().first() > 1 {
+                rect(
+                    width: 100%,
+                    stroke: (
+                        top: 0pt,
+                        left: 0pt,
+                        right: 0pt,
+                        bottom: stroke(thickness: 0.3pt, paint: gray),
+                    ),
+                )[
+                    #{
+                        let pagenr = here().page()
+                        let contents = ()
+                        if calc.rem(pagenr, 2) == 0 {
+                            contents = ([#pagenr], [#author])
+                        } else {
+                            contents = ([#author], [#pagenr])
+                        }
+                        set text(weight: "light")
+                        table(
+                            columns: (5fr, 5fr),
+                            align: (left, right),
+                            stroke: none,
+                            ..contents
+                        )
+                    }
+                ]
+            }
+        },
+    )
+
     set document(title: title, author: author)
 
     set align(center)
-    text(fontsize + 7pt, context document.title)
+    text(font: "IBM Plex Sans", fontsize + 7pt, weight: "extrabold", context document.title)
     linebreak()
     text(fontsize + 1pt, [#auth_label: #context author])
     set align(left)
 
-    outline(title: "Table of Contents")
+    outline(title: toc_title)
     pagebreak()
 
     doc

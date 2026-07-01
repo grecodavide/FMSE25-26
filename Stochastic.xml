@@ -250,7 +250,7 @@ t = 0</label>
 		<parameter>bool dynamic_policy</parameter>
 		<declaration>/// TEMPLATE BEHAVIOR
 /// This template models the player: it waits for the world to tick and, if
-/// he is still alive, it performs an action (either go up or stay still).
+/// he is still alive, it performs an action (movement in one of the four directions, or staying still).
 /// After the action, death is checked again. If after the whole turn the player
 /// is still alive:
 /// - if it is on a home bay, mark it as occupied and check level completion
@@ -767,11 +767,11 @@ respawn()</label>
 truck1 = Truck(0);
 truck2 = Truck(1);
 
-// DYNAMIC VERSION
-frogger = Frogger(true);
-
 // STATIC VERSION
 // frogger = Frogger(false);
+
+// DYNAMIC VERSION
+frogger = Frogger(true);
 
 system frogger, world, truck1, truck2;</system>
 	<queries>
@@ -781,9 +781,8 @@ system frogger, world, truck1, truck2;</system>
 			<comment>1) Given the above specification for the Stochastic version, simulate the game for a maximum of 1000
    time units and estimate the probability of completing the first level while scoring at least 200 points.
 
-The `did_win()` function is true only in the `Occupying` and `PlayedTurn` state, but since we want to check the points,
-the only valid state is `Occupying`. In that state, however, the level is already increased, so to check if we won the 
-first level we have to check if the level is 2</comment>
+The `did_win()` function is true only in the `Occupying` state. In that state, however, the level is already
+increased, so to check if we won the first level we have to check if the level is 2</comment>
 			<option key="--epsilon" value="0.08"/>
 			<result outcome="success" type="quantity" value="0.00630305 ± 0.00225133 (95% CI)" timestamp="2026-06-23 11:46:40 +0200">
 				<option key="--epsilon" value="0.08"/>
