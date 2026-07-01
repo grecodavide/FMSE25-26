@@ -41,4 +41,4 @@ plt.ylabel(property)
 plt.title('Simulation Results')
 # plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left') # Moves legend outside the plot
 plt.tight_layout()
-plt.savefig(f"report/assets/{simu}_simulation.png")
+plt.savefig(f"../assets/{simu}_simulation.png")

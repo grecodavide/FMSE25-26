@@ -81,35 +81,37 @@ occupying the given row. To achieve this we used:
 - An array of offsets (one for each row). Each tick, if the current number of
     ticks is divisible by the speed of the current row, this will increase by
     one (with modulo `MATRIX_COLS`).
-- The function `int[-1,4] get_cell(int[0, MAX_Y] row, int[0, MATRIX_COLS] col)`,
+- The function
+    ```
+    int[-1,4] get_cell(int[0, MAX_Y] row, int[0, MATRIX_COLS] col)
+    ```
     which makes use of all the aforementioned structures to get the type of cell
     currently occupying a given position.
 
-    #figure(
-        grid(
-            columns: (60%, 50%),
-            gutter: 4pt,
-            rows: auto,
-            align(left)[In this way, we have a single automata for all the rows
-                that, at each ticks, updates all the rows (and hence all the
-                elements of the rows). Moreover, it also results in a very
-                simple automata: every tick of its clock, update the world
-                according to the rules we just described and notify the channel.
-                One other thing this automata checks is the state of the diving
-                turtles: since we only care about what the turtles do to the
-                player, we only care about the moments in which they kill the
-                player (submerged), and the moments they don't kill the player
-                (submerging, emerging, emerged). This is handled by a boolean,
-                `are_diving_turtles_up`, which gets set according to the time
-                units described in the specification.],
-            align(center + horizon)[
-                #figure(
-                    image("assets/2026-07-01-10-07-37.png", width: 100%),
-                    caption: [World automata],
-                )
-            ],
-        ),
-    )
+#figure(
+    grid(
+        columns: (60%, 50%),
+        gutter: 4pt,
+        rows: auto,
+        align(left)[In this way, we have a single automata for all the rows
+            that, at each ticks, updates all the rows (and hence all the
+            elements of the rows). Moreover, it also results in a very simple
+            automata: every tick of its clock, update the world according to the
+            rules we just described and notify the channel. One other thing this
+            automata checks is the state of the diving turtles: since we only
+            care about what the turtles do to the player, we only care about the
+            moments in which they kill the player (submerged), and the moments
+            they don't kill the player (submerging, emerging, emerged). This is
+            handled by a boolean, `are_diving_turtles_up`, which gets set
+            according to the time units described in the specification.],
+        align(center + horizon)[
+            #figure(
+                image("assets/2026-07-01-10-07-37.png", width: 100%),
+                caption: [World automata],
+            )
+        ],
+    ),
+)
 
 // End of subsection (level 2) "World movement"
 
@@ -305,7 +307,7 @@ The player instead has some differences:
         is excluded from range).
 Here is reported the new automata:
 #figure(
-    image("assets/2026-07-01-10-16-05.png", width:100%),
+    image("assets/2026-07-01-10-16-05.png", width: 100%),
 )
 
 == Queries<sec:queries>
