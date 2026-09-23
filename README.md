@@ -1,4 +1,4 @@
-Formal Methods for Software Engineering project (Y.Y. 2025/26), using UPPAAL tool.
+Formal Methods for Software Engineering project (Y.Y. 2025/26), using UPPAAL tool (30L/30).
 
 # Topics
 The project required to create a formal representation of the frogger game, in order to verify some properties.
